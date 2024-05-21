@@ -15,7 +15,7 @@ def reviews_evaluation(predictions: List[str], references: List[str], args) -> D
 
     bleu_metric = evaluate.load("bleu")
     bleu_results = bleu_metric.compute(predictions=predictions, references=references_list)
-    bleu_results['precisions'] = np.mean(bleu_results['precisions'])
+    bleu_results["precision"] = np.mean(bleu_results["precisions"])
 
     bertscore_metric = evaluate.load("bertscore")
     bertscore_results = bertscore_metric.compute(
@@ -32,6 +32,7 @@ def reviews_evaluation(predictions: List[str], references: List[str], args) -> D
     rouge_results = rouge_metric.compute(predictions=predictions, references=references)
 
     return {
+        "n_examples": len(predictions),
         "BERTScore": bertscore_results,
         "BLEU": bleu_results,
         "ROUGE": rouge_results,
@@ -40,30 +41,40 @@ def reviews_evaluation(predictions: List[str], references: List[str], args) -> D
 
 
 def ratings_evaluation(predictions: List[float], references: List[float], args) -> Dict:
-    for i in range(len(references)):
+    n_non_numerical = 0
+    n_examples = len(predictions)
+    non_numerical_examples = []    
+    numerical_predictions = []
+    numerical_references = []
+
+    for i in range(len(predictions)):
         try:
             pr = float(predictions[i])
             rr = float(references[i])
+            numerical_predictions.append(pr)
+            numerical_references.append(rr)
         except:
-            pr = float(args.min_rating)
-            rr = float(args.max_rating)
-        predictions[i] = pr
-        references[i] = rr
+            n_non_numerical += 1
+            if n_non_numerical < 10:
+                non_numerical_examples.append(predictions[i])
 
-    predictions = np.array(predictions, dtype=float)
-    references = np.array(references, dtype=float)
+    predictions = np.array(numerical_predictions, dtype=float)
+    references = np.array(numerical_references, dtype=float)
 
     mean_rating = (args.min_rating + args.max_rating) / 2
     binary_predictions = np.where(predictions > mean_rating, 1, 0)
     binary_references = np.where(references > mean_rating, 1, 0)
 
     return {
+        "n_examples": n_examples,
+        "n_non_numerical": n_non_numerical,
         "rmse": np.sqrt(metrics.mean_squared_error(references, predictions)),
         "mae": metrics.mean_absolute_error(references, predictions),
         "precision": metrics.accuracy_score(binary_references, binary_predictions),
         "recall": metrics.recall_score(binary_references, binary_predictions),
         "f1": metrics.f1_score(binary_references, binary_predictions),
         "auc": metrics.roc_auc_score(binary_references, binary_predictions),
+        "non_numerical_examples": non_numerical_examples
     }
 
 
@@ -94,8 +105,8 @@ if __name__ == "__main__":
     args.min_rating = 1.
     args.max_rating = 5.
 
-    predictions = np.random.randint(1, 6, size=(10,))
-    references = np.random.randint(1, 6, size=(10,))
+    predictions = list(np.random.randint(1, 6, size=(10,))) + ["Bad prediction"]
+    references = list(np.random.randint(1, 6, size=(10,))) + [1]
     scores = ratings_evaluation(predictions, references, args)
     print("Ratings evaluation:", scores)
 
