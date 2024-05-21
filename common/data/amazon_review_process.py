@@ -107,51 +107,13 @@ def process_dataset(args):
     plt.savefig(os.path.join(output_dir, "descriptions_stats.png"))
 
 
-def process_all(args):
-    all_data = [
-        #"All_Beauty",
-        "Books",
-        "CDs_and_Vinyl",
-        "Electronics",
-        "Home_and_Kitchen",
-        "Unknown",
-        "Video_Games"
-    ]
-
-    for dataset_name in tqdm(all_data):
-        args.dataset_name = dataset_name
-        args.dataset_file = os.path.join(
-            "Datasets",
-            "AmazonReviews2023",
-            *([dataset_name + ".jsonl"] * 2),
-        )
-        args.items_metadata_file = os.path.join(
-            "Datasets",
-            "AmazonReviews2023",
-            *(["meta_" + dataset_name + ".jsonl"] * 2),
-        )
-        process_dataset(args)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
-    parser.add_argument(
-        "--dataset_file", 
-        type=str,
-        default=""
-    )
-    parser.add_argument(
-        "--items_metadata_file", 
-        type=str,
-        default=""
-    )
-    parser.add_argument(
-        "--output_base_dir",
-        type=str,
-        default="Datasets\\AmazonReviews2023_process"
-    )
-    parser.add_argument("--dataset_name", type=str, default="all")
+    parser.add_argument("--dataset_file", type=str, default="")
+    parser.add_argument("--items_metadata_file", type=str, default="")
+    parser.add_argument("--output_base_dir", type=str, default="")
+    parser.add_argument("--dataset_name", type=str, default="")
     
     parser.add_argument("--user_id_column", type=str, default="user_id")
     parser.add_argument("--item_id_column", type=str, default="parent_asin")
@@ -166,8 +128,5 @@ if __name__ == "__main__":
     parser.set_defaults(verbose=True)
     args = parser.parse_args()
 
-    if args.dataset_name != "all":
-        process_dataset(args)
-    else:
-        process_all(args)
+    process_dataset(args)
     
