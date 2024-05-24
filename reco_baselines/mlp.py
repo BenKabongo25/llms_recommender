@@ -5,9 +5,12 @@
 # Neural Collaborative Filtering
 
 import argparse
+import json
+import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import sys
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -244,25 +247,39 @@ def trainer(model, train_dataloader, test_dataloader, args):
     }
     test_infos = dict(train_infos)
 
-    for epoch in tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue"):
+    progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
+    for epoch in progress_bar:
         train_epoch_infos = train(model, optimizer, train_dataloader, loss_fn, args)
         test_epoch_infos = test(model, test_dataloader, loss_fn, args)
         for metric in train_infos:
             train_infos[metric].append(train_epoch_infos[metric])
             test_infos[metric].append(test_epoch_infos[metric])
-        #print(test_infos)
+        progress_bar.set_description(
+            f"[{epoch} / {args.n_epochs}] " +
+            f"RMSE: train={train_epoch_infos['RMSE']:.4f} test={test_epoch_infos['RMSE']:.4f} " +
+            f"Loss: train={train_epoch_infos['loss']:.4f} test={test_epoch_infos['loss']:.4f}"
+        )
+
+        results = {"train": train_infos, "test": test_infos}
+        with open(args.res_file_path, "w") as res_file:
+            json.dump(results, res_file)
 
     return train_infos, test_infos
 
 
 def main(args):
-    if args.dataset_path != "":
-        data_df = pd.read_csv(args.dataset_path, index_col=0).dropna().sample(160)
-        train_df = data_df.sample(frac=args.train_size)
+    if args.dataset_dir == "":
+        args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
+    if args.dataset_path == "":
+        args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
+        
+    if args.train_dataset_path != "" and args.test_dataset_path != "":
+        train_df = pd.read_csv(args.train_dataset_path, index_col=0).dropna()
+        test_df = pd.read_csv(args.test_dataset_path, index_col=0).dropna()
+    elif args.dataset_path != "":
+        data_df = pd.read_csv(args.dataset_path, index_col=0).dropna()
+        train_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
         test_df = data_df.drop(train_df.index)
-    elif args.train_dataset_path != "" and args.test_dataset_path != "":
-        train_df = pd.read_csv(args.train_dataset_path, index_col=0)
-        test_df = pd.read_csv(args.test_dataset_path, index_col=0)
     else:
         raise Exception("You must specifie dataset_path or train/test data paths!")
     
@@ -270,9 +287,9 @@ def main(args):
     test_df = test_df.dropna()
 
     n_train = len(train_df)
-    data_df = pd.concat([train_df, test_df])
+    data_df = pd.concat([train_df, test_df]).sample(80)
+    data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
     data_df, users_vocab, items_vocab = process_data(data_df, args)
-    print(data_df.sample(n=5))
 
     train_df = data_df.head(n_train)
     train_dataset = RatingDataset(train_df, args)
@@ -298,18 +315,48 @@ def main(args):
     )
     model.to(args.device)
 
+    if args.exp_name == "":
+        args.exp_name = f"mlp_{int(time.time())}"
+    exps_base_dir = os.path.join(args.dataset_dir, "exps")
+    exp_dir = os.path.join(exps_base_dir, args.exp_name)
+    os.makedirs(exp_dir, exist_ok=True)
+    args.log_file_path = os.path.join(exp_dir, "log.txt")
+    args.res_file_path = os.path.join(exp_dir, "res.json")
+
+    if args.verbose:
+        log = (
+            f"Task: Rating prediction\n" +
+            f"Dataset: {args.dataset_name}\n" +
+            f"Device: {device}\n\n" +
+            f"Data:\n{data_df.head(5)}\n\n"
+        )
+        print("\n" + log)
+        with open(args.log_file_path, "w", encoding="utf-8") as log_file:
+            log_file.write(log)
+
     train_infos, test_infos = trainer(model, train_dataloader, test_dataloader, args)
-    print()
+    results = {"train": train_infos, "test": test_infos}
+    with open(args.res_file_path, "w") as res_file:
+        json.dump(results, res_file)
+
+    for metric in train_infos:
+        plt.figure()
+        plt.title(f"{args.dataset_name} MLP - {metric}")
+        plt.plot(train_infos[metric], label="train")
+        plt.plot(test_infos[metric], label="test")
+        plt.savefig(os.path.join(exp_dir, metric.lower() + ".png"))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--dataset_name", type=str, default="All_Beauty")
+    parser.add_argument("--base_dir", type=str, default="")
+    parser.add_argument("--dataset_name", type=str, default="")
+    parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
-    parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
+    parser.add_argument("--exp_name", type=str, default="")
     
     parser.add_argument("--embedding_dim", type=int, default=128)
     parser.add_argument("--padding_idx", type=int, default=0)
@@ -321,6 +368,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--n_epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--lr", type=float, default=0.001)
 
     parser.add_argument("--user_id_column", type=str, default="user_id")
