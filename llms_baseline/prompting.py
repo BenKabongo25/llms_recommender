@@ -254,8 +254,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # base
-    parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_process")
-    parser.add_argument("--dataset_name", type=str, default="Books")
+    parser.add_argument("--base_dir", type=str, default="")
+    parser.add_argument("--dataset_name", type=str, default="")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--users_path", type=str, default="")
