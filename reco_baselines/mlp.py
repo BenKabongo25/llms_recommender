@@ -14,6 +14,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import warnings
 from sklearn import metrics
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
@@ -21,6 +22,7 @@ from typing import *
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
+warnings.filterwarnings(action="ignore")
 
 from common.utils.evaluation import ratings_evaluation
 
@@ -282,12 +284,9 @@ def main(args):
         test_df = data_df.drop(train_df.index)
     else:
         raise Exception("You must specifie dataset_path or train/test data paths!")
-    
-    train_df = train_df.dropna()
-    test_df = test_df.dropna()
 
     n_train = len(train_df)
-    data_df = pd.concat([train_df, test_df]).sample(80)
+    data_df = pd.concat([train_df, test_df])
     data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
     data_df, users_vocab, items_vocab = process_data(data_df, args)
 
@@ -344,19 +343,20 @@ def main(args):
         plt.title(f"{args.dataset_name} MLP - {metric}")
         plt.plot(train_infos[metric], label="train")
         plt.plot(test_infos[metric], label="test")
+        plt.legend()
         plt.savefig(os.path.join(exp_dir, metric.lower() + ".png"))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--base_dir", type=str, default="")
-    parser.add_argument("--dataset_name", type=str, default="")
+    parser.add_argument("--base_dir", type=str, default="..\\Datasets\\AmazonReviews2023_process")
+    parser.add_argument("--dataset_name", type=str, default="All_Beauty")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
-    parser.add_argument("--exp_name", type=str, default="")
+    parser.add_argument("--exp_name", type=str, default="test")
     
     parser.add_argument("--embedding_dim", type=int, default=128)
     parser.add_argument("--padding_idx", type=int, default=0)
@@ -366,7 +366,7 @@ if __name__ == "__main__":
     parser.add_argument("--min_rating", type=float, default=1.0)
     parser.add_argument("--max_rating", type=float, default=5.0)
     
-    parser.add_argument("--n_epochs", type=int, default=10)
+    parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--lr", type=float, default=0.001)
@@ -376,7 +376,7 @@ if __name__ == "__main__":
     parser.add_argument("--rating_column", type=str, default="rating")
     parser.add_argument("--user_vocab_id_column", type=str, default="user_vocab_id")
     parser.add_argument("--item_vocab_id_column", type=str, default="item_vocab_id")
-    parser.add_argument("--random_state'", type=int, default=42)
+    parser.add_argument("--random_state", type=int, default=42)
     parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
     parser.add_argument("--verbose_every", type=int, default=10)
     parser.set_defaults(verbose=True)
