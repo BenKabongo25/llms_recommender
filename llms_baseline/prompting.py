@@ -8,6 +8,7 @@ import argparse
 import json
 import os
 import pandas as pd
+import sys
 import time
 import torch
 
@@ -18,8 +19,12 @@ from typing import *
 from tqdm import tqdm
 
 from data import DataSplitter, TextDataset
-from evaluation import evaluate_fn
 from prompters import TargetFormer
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+
+from common.utils.evaluation import evaluate_fn
 
 
 class BasePromptModel:

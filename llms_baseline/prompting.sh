@@ -1,10 +1,10 @@
 python prompting.py \
-    --base_dir BASE_DIR \
-    --dataset_name DATASET_NAME \
+    --base_dir ..\\Datasets\\AmazonReviews2023_process \
+    --dataset_name CDs_and_Vinyl \
     #--dataset_dir DATASET_DIR \
     #--dataset_path  DATASET_PATH\
     #--users_path USER_PATH \
-    --items_path ITEM_PATH \
+    #--items_path ITEM_PATH \
     --lang en \
     --verbose \
     #--exp_name EXP_NAME \
@@ -45,3 +45,4 @@ python prompting.py \
     --max_target_length 128 \
     --model_name_or_path google/flan-t5-base \
     --tokenizer_name_or_path google/flan-t5-base \
+    
