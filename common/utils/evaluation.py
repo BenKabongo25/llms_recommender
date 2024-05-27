@@ -1,7 +1,7 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - May 2024
 
-# Basline approach
+# Common
 # Reviews and ratings evaluation
 
 import evaluate
