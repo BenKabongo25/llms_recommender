@@ -15,6 +15,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import warnings
 from sklearn import metrics
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -22,6 +23,7 @@ from typing import *
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
+warnings.filterwarnings(action="ignore")
 
 from common.utils.evaluation import ratings_evaluation
 from common.utils.vocabulary import Vocabulary
@@ -195,7 +197,9 @@ def trainer(model, train_dataloader, test_dataloader, args):
     train_infos = {
         "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
     }
-    test_infos = dict(train_infos)
+    test_infos = {
+        "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
+    }
 
     progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
     for epoch in progress_bar:
@@ -323,7 +327,7 @@ def main(args):
 
     for metric in train_infos:
         plt.figure()
-        plt.title(f"{args.dataset_name} MLP - {metric}")
+        plt.title(f"{args.dataset_name} ABSA model - {metric}")
         plt.plot(train_infos[metric], label="train")
         plt.plot(test_infos[metric], label="test")
         plt.legend()
@@ -356,7 +360,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
-    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--lr", type=float, default=0.01)
 
     parser.add_argument("--user_id_column", type=str, default="user_id")
     parser.add_argument("--item_id_column", type=str, default="item_id")

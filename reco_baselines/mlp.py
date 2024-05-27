@@ -215,7 +215,9 @@ def trainer(model, train_dataloader, test_dataloader, args):
     train_infos = {
         "accuracy": [], "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
     }
-    test_infos = dict(train_infos)
+    test_infos = {
+        "accuracy": [], "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
+    }
 
     progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
     for epoch in progress_bar:
