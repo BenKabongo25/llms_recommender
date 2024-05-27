@@ -65,12 +65,12 @@ class MLPRecommender(nn.Module):
         self.n_classes = n_classes
 
         self.user_embed = nn.Embedding(
-            num_embeddings=self.n_users, 
+            num_embeddings=self.n_users + 1, 
             embedding_dim=self.embedding_dim,
             padding_idx=self.padding_idx
         )
         self.item_embed = nn.Embedding(
-            num_embeddings=self.n_items, 
+            num_embeddings=self.n_items + 1, 
             embedding_dim=self.embedding_dim,
             padding_idx=self.padding_idx
         )

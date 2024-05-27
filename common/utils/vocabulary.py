@@ -25,7 +25,7 @@ class Vocabulary:
             self.add_element(element)
 
     def __len__(self):
-        return self.n_elements + 1
+        return self.n_elements
     
     def id2element(self, id: int) -> Union[int, float, str]:
         return self._ids2elements[id]
