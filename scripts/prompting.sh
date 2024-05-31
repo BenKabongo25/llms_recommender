@@ -1,13 +1,18 @@
-python prompting.py \
-    --base_dir ..\\Datasets\\AmazonReviews2023_process \
-    --dataset_name CDs_and_Vinyl \
-    #--dataset_dir DATASET_DIR \
-    #--dataset_path  DATASET_PATH\
-    #--users_path USER_PATH \
-    #--items_path ITEM_PATH \
+#!/bin/bash
+
+#SBATCH --partition=funky
+#SBATCH --job-name=reco_nlp
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
+#SBATCH --time=6000
+#SBATCH --output=reco_nlp_all_beauty_ratings.out
+#SBATCH --error=reco_nlp_all_beauty_ratings.err
+
+python /home/kabongo/reco_nlp/reco_nlp/llms_baseline/prompting.py \
+    --base_dir /home/kabongo/reco_nlp/data/process \
+    --dataset_name All_Beauty \
     --lang en \
     --verbose \
-    #--exp_name EXP_NAME \
     --batch_size 16 \
     --evaluate_every 10 \
     --base_data_size 0.25 \
@@ -31,18 +36,15 @@ python prompting.py \
     --review_column review \
     --timestamp_flag \
     --timestamp_column timestamp \
-    #--user_description_flag  \
     --item_description_flag  \
-    #--user_only_flag \
     --user_description_column description \
     --item_description_column description \
     --source_review_flag \
     --source_rating_flag \
     --user_first_flag \
-    --target_review_flag \
+    --no-target_review_flag \
     --target_rating_flag \
     --max_source_length 1024 \
     --max_target_length 128 \
     --model_name_or_path google/flan-t5-base \
     --tokenizer_name_or_path google/flan-t5-base \
-    

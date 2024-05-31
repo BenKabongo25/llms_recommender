@@ -12,31 +12,46 @@ import seaborn as sns
 from tqdm import tqdm
 
 
+def process_chunk(file_path, chunk_size, columns, output_path):
+    with open(file_path, 'r') as fp:
+        data = []
+        for i, line in enumerate(tqdm(fp, desc=f"Processing {file_path}")):
+            item = json.loads(line.strip())
+            data.append(
+                {k_column: item[v_column] for k_column, v_column in columns.items()}
+            )
+
+            if (i + 1) % chunk_size == 0:
+                df = pd.DataFrame(data)
+                df.to_csv(output_path, mode='a', header=not os.path.exists(output_path), index=False, escapechar='\\')
+                data = []
+        
+        if data:
+            df = pd.DataFrame(data)
+            df.to_csv(output_path, mode='a', header=not os.path.exists(output_path), index=False, escapechar='\\')
+
+
 def process_dataset(args):
     output_dir = os.path.join(args.output_base_dir, args.dataset_name)
     os.makedirs(output_dir, exist_ok=True)
 
     data_df_path = os.path.join(output_dir, "data.csv")
-    if os.path.exists(data_df_path):
-        data_df = pd.read_csv(data_df_path, index_col=0)
+    if not os.path.exists(data_df_path):
+        data_temp_path = os.path.join(output_dir, "data_temp.csv")
+        columns = {
+            "user_id": args.user_id_column, 
+            "item_id": args.item_id_column, 
+            "rating": args.rating_column, 
+            "review": args.review_column, 
+            "timestamp": args.timestamp_column
+        }
+        process_chunk(args.dataset_file, chunk_size=10000, columns=columns, output_path=data_temp_path)
 
+        data_df = pd.read_csv(data_temp_path)
+        data_df.to_csv(data_df_path, index=False)
+        os.remove(data_temp_path)
     else:
-        data = []
-        with open(args.dataset_file, 'r') as fp:
-            for line in tqdm(fp, args.dataset_name + " data"):
-                item = json.loads(line.strip())
-                data.append(
-                    dict(
-                        user_id=item[args.user_id_column],
-                        item_id=item[args.item_id_column],
-                        rating=item[args.rating_column],
-                        review=item[args.review_column],
-                        timestamp=item[args.timestamp_column]
-                    )
-                )
-
-        data_df = pd.DataFrame(data)
-        data_df.to_csv(data_df_path)
+        data_df = pd.read_csv(data_df_path)
 
     if args.verbose:
         print(args.dataset_name)
@@ -44,23 +59,19 @@ def process_dataset(args):
         print(data_df.sample(n=2))
 
     metadata_df_path = os.path.join(output_dir, "items.csv")
-    if os.path.exists(metadata_df_path):
-        metadata_df = pd.read_csv(metadata_df_path, index_col=0)
+    if not os.path.exists(metadata_df_path):
+        meta_temp_path = os.path.join(output_dir, "meta_temp.csv")
+        columns = {
+            "item_id": args.meta_item_id_column, 
+            "description": args.meta_item_description_column
+        }
+        process_chunk(args.items_metadata_file, chunk_size=10000, columns=columns, output_path=meta_temp_path)
 
+        metadata_df = pd.read_csv(meta_temp_path)
+        metadata_df.to_csv(metadata_df_path, index=False)
+        os.remove(meta_temp_path)
     else:
-        data = []
-        with open(args.items_metadata_file, 'r') as fp:
-            for line in tqdm(fp, args.dataset_name + " meta data"):
-                item = json.loads(line.strip())
-                data.append(
-                    dict(
-                        item_id=item[args.meta_item_id_column],
-                        description=item[args.meta_item_description_column]
-                    )
-                )
-
-        metadata_df = pd.DataFrame(data)
-        metadata_df.to_csv(metadata_df_path)
+        metadata_df = pd.read_csv(metadata_df_path)
 
     if args.verbose:
         print("Metadata:")
@@ -129,4 +140,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     process_dataset(args)
-    

@@ -99,7 +99,7 @@ def prompting(
     ratings_predictions = []
     ratings_references = []
 
-    for i, batch in tqdm(enumerate(dataloader)):
+    for i, batch in tqdm(enumerate(dataloader), total=len(dataloader)):
         outputs = prompt_model.process_batch(batch, device)
 
         if args.verbose and i == 0:
