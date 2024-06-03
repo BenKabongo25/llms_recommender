@@ -254,8 +254,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # base
-    parser.add_argument("--base_dir", type=str, default="")
-    parser.add_argument("--dataset_name", type=str, default="")
+    parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_processed")
+    parser.add_argument("--dataset_name", type=str, default="All_Beauty")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--users_path", type=str, default="")
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     parser.add_argument("--val_size", type=float, default=0.0)
 
     parser.add_argument("--split_method", type=int, default=0)
-    parser.add_argument("--sampling_method", type=int, default=0)
+    parser.add_argument("--sampling_method", type=int, default=1)
     parser.add_argument("--similarity_function", type=int, default=0)
     parser.add_argument("--random_state", type=int, default=42)
 
@@ -308,9 +308,9 @@ if __name__ == "__main__":
     parser.add_argument("--user_first_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(user_first_flag=True)
     parser.add_argument("--target_review_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(target_review_flag=True)
+    parser.set_defaults(target_review_flag=False)
     parser.add_argument("--target_rating_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(target_rating_flag=False)
+    parser.set_defaults(target_rating_flag=True)
 
     # Model
     parser.add_argument("--max_source_length", type=int, default=1024)

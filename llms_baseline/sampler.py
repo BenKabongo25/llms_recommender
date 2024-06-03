@@ -69,7 +69,7 @@ class Sampler:
 
             similarities = {}
             tqdm_desc = ("Users" if user_based else "Items") + " similarities"
-            for i in tqdm(range(0, n_elements), tqdm_desc):
+            for i in tqdm(range(0, n_elements), tqdm_desc, colour="orange"):
                 a_id = elements[i]
 
                 for j in range(i + 1, n_elements):
