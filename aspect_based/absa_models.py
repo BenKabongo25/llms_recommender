@@ -6,10 +6,13 @@
 
 
 import argparse
+import enum
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import pandas as pd
+import random
 import sys
 import time
 import torch
@@ -30,7 +33,7 @@ from common.utils.vocabulary import Vocabulary
 
 
 def rescale(x, a, b, c, d):
-    return c + (c - d) * ((x - a) / (b - a))
+    return c + (d - c) * ((x - a) / (b - a))
 
 aspect_scale = lambda x, args: rescale(
     x,
@@ -47,7 +50,7 @@ global_scale = lambda x, args: rescale(
 
 class ABSARecoDataset(Dataset):
 
-    def __init__(self, data_df: pd.DataFrame, args):
+    def __init__(self, data_df: pd.DataFrame, args: Any):
         super().__init__()
         self.data_df = data_df
         self.args = args
@@ -58,40 +61,130 @@ class ABSARecoDataset(Dataset):
     def __getitem__(self, index) -> Any:
         row = self.data_df.iloc[index]
         user_id = row[self.args.user_vocab_id_column]
+        item_id = row[self.args.item_vocab_id_column]
         global_rating = row[self.args.rating_column]
         aspects_ratings = [row[aspect] for aspect in self.args.aspects]
-        return user_id, aspects_ratings, global_rating
+        return user_id, item_id, aspects_ratings, global_rating
 
 
-class ABSARecommender:
+class ItemProfileType(enum.Enum):
+    AVERAGE     = 0
+    WEIGHTED    = 1
+    USER_BASED  = 2
+    LEARNED     = 3
+
+
+class ItemProfile:
+
+    def __init__(self, n_items: int, args: Any):
+        self.n_items = n_items
+        self.args = args
+        self.n_aspects = len(self.args.aspects)
+
+    def get_items_parameters(self, I_ids: torch.Tensor) -> torch.Tensor:
+        return self.clamp(self.items_parameters[I_ids])
     
+    def clamp(self, parameters: torch.Tensor) -> torch.Tensor:
+        return  torch.clamp(
+            parameters,
+            min=self.args.aspect_min_rating,
+            max=self.args.aspect_max_rating
+        )
+
+
+class AverageItemProfile(nn.Module, ItemProfile):
+
+    def __init__(self, n_items: int, args: Any):
+        ItemProfile.__init__(self, n_items, args)
+        nn.Module.__init__(self)
+        self.items_parameters = torch.zeros((self.n_items + 1, self.n_aspects))
+        self.items_counters = torch.zeros(self.n_items + 1)
+
+    def forward(
+        self, 
+        I_ids: torch.Tensor, 
+        A_weights: torch.Tensor,
+        A_ratings: torch.Tensor=None
+    ) -> torch.Tensor:
+        if A_ratings is not None:
+            items_parameters = self.items_parameters.clone() * self.items_counters[:, None]
+            items_parameters.index_add_(0, I_ids, A_ratings)
+            counts = self.items_counters.clone()
+            counts.index_add_(0, I_ids, torch.ones(len(I_ids)).to(I_ids.device))
+            items_parameters = items_parameters / torch.clamp(counts, min=1)[:, None]
+            self.items_parameters = items_parameters
+        A_ratings = self.get_items_parameters(I_ids)
+        predictions = torch.sum(A_weights * A_ratings, dim=1)
+        return predictions
+    
+
+class LearnableItemProfile(nn.Module, ItemProfile):
+
+    def __init__(self, n_items: int, args: Any):
+        ItemProfile.__init__(self, n_items, args)
+        nn.Module.__init__(self)
+        self.items_parameters = nn.Parameter(
+            torch.full(
+                (self.n_items + 1, self.n_aspects),
+                (self.args.aspect_min_rating + self.args.aspect_max_rating) / 2.0
+            )
+        )
+
+    def forward(
+        self, 
+        I_ids: torch.Tensor, 
+        A_weights: torch.Tensor,
+        A_ratings: torch.Tensor=None
+    ) -> torch.Tensor:
+        A_ratings = self.get_items_parameters(I_ids)
+        predictions = torch.sum(A_weights * A_ratings, dim=1)
+        return predictions
+
+
+class UserProfileType(enum.Enum):
+    LINEAR = 0
+    EMBED  = 1
+
+
+class UserProfile:
+
     def __init__(self, n_users: int, args: Any):
         self.n_users = n_users
         self.args = args
         self.n_aspects = len(args.aspects)
 
+    def get_users_parameters(self, U_ids: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError
+    
+    def forward(self, U_ids: torch.Tensor, A_ratings: torch.Tensor) -> torch.Tensor:
+        batch_users_params = self.get_users_parameters(U_ids)
+        predictions = torch.sum(batch_users_params * A_ratings, dim=1)
+        predictions = global_scale(predictions, self.args)
+        return predictions
 
-class LinearABSARecommender(nn.Module, ABSARecommender):
+
+class LinearUserProfile(nn.Module, UserProfile):
     
     def __init__(self, n_users: int, args: Any):
-        ABSARecommender.__init__(self, n_users, args)
+        UserProfile.__init__(self, n_users, args)
         nn.Module.__init__(self)
         self.users_parameters = nn.Parameter(
             torch.full((self.n_users + 1, self.n_aspects), 1.0 / self.n_aspects)
         )
 
-    def forward(self, U_ids: torch.Tensor, A_ratings: torch.Tensor) -> torch.Tensor:
+    def get_users_parameters(self, U_ids: torch.Tensor) -> torch.Tensor:
         user_params_normalized = F.normalize(self.users_parameters, p=1, dim=1)
         batch_users_params = user_params_normalized[U_ids]
-        predictions = torch.sum(batch_users_params * A_ratings.T, dim=1)
-        predictions = global_scale(predictions, self.args)
-        return predictions
+        return batch_users_params
+    
+    def forward(self, U_ids: torch.Tensor, A_ratings: torch.Tensor) -> torch.Tensor:
+        return UserProfile.forward(self, U_ids, A_ratings)
 
 
-class DeepABSARecommender(nn.Module, ABSARecommender):
+class EmbedUserProfile(nn.Module, UserProfile):
     
     def __init__(self, n_users: int, args: Any):
-        ABSARecommender.__init__(self, n_users, args)
+        UserProfile.__init__(self, n_users, args)
         nn.Module.__init__(self)
         self.users_embed = nn.Embedding(
             num_embeddings=self.n_users + 1,
@@ -104,45 +197,109 @@ class DeepABSARecommender(nn.Module, ABSARecommender):
             padding_idx=self.args.padding_idx
         )
 
-    def forward(self, U_ids: torch.Tensor, A_ratings: torch.Tensor) -> torch.Tensor:
+    def get_users_parameters(self, U_ids: torch.Tensor) -> torch.Tensor:
         users_embeddings = self.users_embed(U_ids)
         A_ids = torch.arange(1, self.n_aspects).to(U_ids.device)
         aspetcs_embeddings = self.aspets_embed(A_ids)
         weights = users_embeddings.dot(aspetcs_embeddings.T)
-        predictions = torch.sum(weights * A_ratings, dim=1)
-        predictions = global_scale(predictions, self.args)
-        return predictions
+        return weights
+
+    def forward(self, U_ids: torch.Tensor, A_ratings: torch.Tensor) -> torch.Tensor:
+        return UserProfile.forward(self, U_ids, A_ratings)
 
 
-def process_data(data_df: pd.DataFrame, args=None):
+class ABSARecommender(nn.Module):
+
+    def __init__(self, user_profile: UserProfile, item_profile: ItemProfile, args: Any):
+        nn.Module.__init__(self)
+        self.user_profile = user_profile
+        self.item_profile = item_profile
+        self.args = args
+
+    def forward(
+        self,
+        U_ids: torch.Tensor, 
+        I_ids: torch.Tensor, 
+        A_ratings: torch.Tensor=None,
+        force: bool=True
+    ) -> torch.Tensor:
+        with torch.no_grad():
+            U_params = self.user_profile.get_users_parameters(U_ids)
+            I_params = self.item_profile.get_items_parameters(I_ids)
+            if not force or A_ratings is None:
+                used_A_ratings = I_params
+            else:
+                used_A_ratings = A_ratings.clone()
+        U_R_hat = self.user_profile(U_ids, used_A_ratings)
+        I_R_hat = self.item_profile(I_ids, U_params, A_ratings)
+        return U_R_hat.squeeze(), I_R_hat.squeeze()
+
+
+class RatingsMSELoss(nn.Module):
+
+    def __init__(self, alpha: float=0.5):
+        super().__init__()
+        assert 0.0 <= alpha <= 1.0, "Alpha must be between 0 and 1!"
+        self.alpha = alpha
+        self.U_loss = nn.MSELoss(reduce="mean")
+        self.I_loss = nn.MSELoss(reduce="mean")
+
+    def forward(
+        self, 
+        U_R: torch.Tensor,
+        U_R_hat: torch.Tensor,
+        I_R: torch.Tensor,
+        I_R_hat: torch.Tensor,
+    ) -> torch.Tensor:
+        #print(U_R.shape, U_R_hat.shape, I_R.shape, I_R_hat.shape)
+        return (
+            self.alpha * self.U_loss(U_R_hat.flatten(), U_R.flatten()) +
+            (1 - self.alpha) * self.I_loss(I_R_hat.flatten(), I_R.flatten())
+        )
+
+
+def process_data(data_df: pd.DataFrame, args: Any=None):
     users = data_df[args.user_id_column].unique()
     users_vocab = Vocabulary()
     users_vocab.add_elements(users)
+
+    items = data_df[args.item_id_column].unique()
+    items_vocab = Vocabulary()
+    items_vocab.add_elements(items)
+
+    def to_vocab_id(element, vocabulary: Vocabulary) -> int:
+        return vocabulary.element2id(element)
+    
     data_df[args.user_vocab_id_column] = data_df[args.user_id_column].apply(
-        lambda u: users_vocab.element2id(u)
+        lambda u: to_vocab_id(u, users_vocab)
     )
-    return data_df, users_vocab
+    data_df[args.item_vocab_id_column] = data_df[args.item_id_column].apply(
+        lambda i: to_vocab_id(i, items_vocab)
+    )
+    return data_df, users_vocab, items_vocab
 
 
-def train(model, optimizer, dataloader, loss_fn, args):
+def train(model, optimizer, dataloader, loss_fn, force, args):
     references = []
     predictions = []
     running_loss = .0
 
     model.train()
-    for U_ids, A_ratings, R in dataloader:
-        optimizer.zero_grad()
+    for U_ids, I_ids, A_ratings, R in dataloader:
         U_ids = torch.LongTensor(U_ids).to(args.device)
-        A_ratings = torch.stack(A_ratings, dim=0).to(dtype=torch.float32, device=args.device)
+        I_ids = torch.LongTensor(I_ids).to(args.device)
+        A_ratings = torch.stack(A_ratings, dim=1).to(dtype=torch.float32, device=args.device)
         R = torch.tensor(R, dtype=torch.float32).to(args.device)
-        R_hat = model(U_ids, A_ratings).squeeze()
-        loss = loss_fn(R_hat, R)
+  
+        optimizer.zero_grad()
+        U_R_hat, I_R_hat = model(U_ids, I_ids, A_ratings, force)
+        loss = loss_fn(R, U_R_hat, R, I_R_hat)
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
 
         references.extend(R.cpu().detach().tolist())
-        predictions.extend(R_hat.cpu().detach().tolist())
+        predictions.extend(U_R_hat.cpu().detach().tolist())
 
     running_loss /= len(dataloader)
     ratings_scores = ratings_evaluation(predictions, references, args)
@@ -165,16 +322,18 @@ def test(model, dataloader, loss_fn, args):
 
     model.eval()
     with torch.no_grad():
-        for U_ids, A_ratings, R in dataloader:
+        for U_ids, I_ids, A_ratings, R in dataloader:
             U_ids = torch.LongTensor(U_ids).to(args.device)
-            A_ratings = torch.stack(A_ratings, dim=0).to(dtype=torch.float32, device=args.device)
+            I_ids = torch.LongTensor(I_ids).to(args.device)
+            A_ratings = torch.stack(A_ratings, dim=1).to(dtype=torch.float32, device=args.device)
             R = torch.tensor(R, dtype=torch.float32).to(args.device)
-            R_hat = model(U_ids, A_ratings).squeeze()
-            loss = loss_fn(R_hat, R)
+    
+            U_R_hat, I_R_hat = model(U_ids, I_ids, A_ratings, False)
+            loss = loss_fn(R, U_R_hat, R, I_R_hat)
             running_loss += loss.item()
 
             references.extend(R.cpu().detach().tolist())
-            predictions.extend(R_hat.cpu().detach().tolist())
+            predictions.extend(U_R_hat.cpu().detach().tolist())
 
     running_loss /= len(dataloader)
     ratings_scores = ratings_evaluation(predictions, references, args)
@@ -192,7 +351,7 @@ def test(model, dataloader, loss_fn, args):
 
 def trainer(model, train_dataloader, test_dataloader, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    loss_fn = nn.MSELoss()
+    loss_fn = RatingsMSELoss(args.alpha)
 
     train_infos = {
         "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
@@ -203,7 +362,13 @@ def trainer(model, train_dataloader, test_dataloader, args):
 
     progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
     for epoch in progress_bar:
-        train_epoch_infos = train(model, optimizer, train_dataloader, loss_fn, args)
+        force_ratio = (
+            args.force_initial_ratio - 
+            (args.force_initial_ratio - args.force_final_ratio) *
+            (epoch / args.n_epochs)
+        )
+        force = random.random() < force_ratio
+        train_epoch_infos = train(model, optimizer, train_dataloader, loss_fn, force, args)
         test_epoch_infos = test(model, test_dataloader, loss_fn, args)
         for metric in train_infos:
             train_infos[metric].append(train_epoch_infos[metric])
@@ -222,10 +387,8 @@ def trainer(model, train_dataloader, test_dataloader, args):
 
 
 def make_toy_dataset():
-    import numpy as np
-
-    n_users = 10
-    n_items = 20
+    n_users = 100
+    n_items = 200
     n_aspects = 5
     
     users = [f"u{i}" for i in range(1, n_users + 1)]
@@ -255,6 +418,10 @@ def make_toy_dataset():
 
 
 def main(args):
+    random.seed(args.random_state)
+    np.random.seed(args.random_state)
+    torch.manual_seed(args.random_state)
+
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
     if args.dataset_path == "":
@@ -275,13 +442,15 @@ def main(args):
     else:
         raise Exception("You must specify dataset_path or train/test data paths!")
     
-    if isinstance(args.aspects, str):
+    if not isinstance(args.aspects, list):
         assert args.aspects.strip() != "", "You must specify aspects!"
         args.aspetcs = args.aspects.strip().split(args.aspects_sep)
 
     n_train = len(train_df)
     data_df = pd.concat([train_df, test_df])
-    data_df, users_vocab = process_data(data_df, args)
+    data_df, users_vocab, items_vocab = process_data(data_df, args)
+    n_users = len(users_vocab) + 1
+    n_items = len(items_vocab) + 1
 
     train_df = data_df.head(n_train)
     train_dataset = ABSARecoDataset(train_df, args)
@@ -294,14 +463,26 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
 
-    if args.linear:
-        model = LinearABSARecommender(n_users=len(users_vocab), args=args)
-    else:
-        model = DeepABSARecommender(n_users=len(users_vocab), args=args)
+    user_profile_type = UserProfileType(args.user_profile_type)
+    if user_profile_type is UserProfileType.EMBED:
+        user_profile = EmbedUserProfile(n_users, args)
+    else: # LINEAR
+        user_profile = LinearUserProfile(n_users, args)
+
+    item_profile_type = ItemProfileType(args.item_profile_type)
+    if item_profile_type is ItemProfileType.LEARNED:
+        item_profile = LearnableItemProfile(n_items, args)
+    else: # AVERAGE
+        item_profile = AverageItemProfile(n_items, args)
+    
+    model = ABSARecommender(user_profile, item_profile, args)
     model.to(args.device)
 
     if args.exp_name == "":
-        args.exp_name = f"absa_{('linear' if args.linear else 'deep')}_{int(time.time())}"
+        args.exp_name = (
+            f"absa_{args.user_profile_type}_{args.item_profile_type}_"
+            f"{int(time.time())}"
+        )
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
     exp_dir = os.path.join(exps_base_dir, args.exp_name)
     os.makedirs(exp_dir, exist_ok=True)
@@ -311,8 +492,9 @@ def main(args):
     if args.verbose:
         log = (
             f"Task: Rating prediction\n" +
-            f"Model: {('linear' if args.linear else 'deep')}\n" +
             f"Dataset: {args.dataset_name}\n" +
+            f"User profile type: {args.user_profile_type}\n" +
+            f"Item profile type: {args.item_profile_type}\n" +
             f"Device: {device}\n\n" +
             f"Data:\n{data_df.head(5)}\n\n"
         )
@@ -343,12 +525,12 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
-    parser.add_argument("--exp_name", type=str, default="test")
+    parser.add_argument("--exp_name", type=str, default="")
     
     parser.add_argument("--aspects", type=str, default="")
     parser.add_argument("--aspects_sep", type=str, default=";")
-    parser.add_argument("--linear", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(linear=True)
+    parser.add_argument("--user_profile_type", type=int, default=0)
+    parser.add_argument("--item_profile_type", type=int, default=3)
     parser.add_argument("--embedding_dim", type=int, default=128)
     parser.add_argument("--padding_idx", type=int, default=0)
 
@@ -360,7 +542,10 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
-    parser.add_argument("--lr", type=float, default=0.01)
+    parser.add_argument("--lr", type=float, default=0.1)
+    parser.add_argument("--alpha", type=float, default=0.5)
+    parser.add_argument("--force_initial_ratio", type=float, default=1.0)
+    parser.add_argument("--force_final_ratio", type=float, default=0.0)
 
     parser.add_argument("--user_id_column", type=str, default="user_id")
     parser.add_argument("--item_id_column", type=str, default="item_id")

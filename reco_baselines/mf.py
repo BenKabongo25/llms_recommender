@@ -45,7 +45,6 @@ class MFRecommender:
             self.algo = SVDpp(
                 n_factors=self.args.n_factors,
                 n_epochs=self.args.n_epochs,
-                biased=self.args.biased,
                 lr_all=self.args.lr_all,
                 reg_all=self.args.reg_all,
                 random_state=self.args.random_state,
@@ -147,7 +146,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--algo", type=str, default="svd") # svd, svd++, nmf
+    parser.add_argument("--algo", type=str, default="svd++") # svd, svd++, nmf
     parser.add_argument("--n_factors", type=int, default=100)
     parser.add_argument("--n_epochs", type=int, default=20)
     parser.add_argument("--biased", action=argparse.BooleanOptionalAction)
@@ -158,8 +157,8 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
     parser.set_defaults(verbose=True)
 
-    parser.add_argument("--base_dir", type=str, default="..\\Datasets\\AmazonReviews2023_process")
-    parser.add_argument("--dataset_name", type=str, default="All_Beauty")
+    parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_process")
+    parser.add_argument("--dataset_name", type=str, default="Books")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")

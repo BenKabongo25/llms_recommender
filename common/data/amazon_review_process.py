@@ -65,6 +65,7 @@ def process_dataset(args):
             "item_id": args.meta_item_id_column, 
             "description": args.meta_item_description_column
         }
+        columns = [args.meta_item_id_column, args.meta_item_description_column]
         process_chunk(args.items_metadata_file, chunk_size=10000, columns=columns, output_path=meta_temp_path)
 
         metadata_df = pd.read_csv(meta_temp_path)
