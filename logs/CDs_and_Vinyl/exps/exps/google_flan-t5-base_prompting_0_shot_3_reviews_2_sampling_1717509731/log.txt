@@ -1,0 +1,395 @@
+Model: google/flan-t5-base
+Tokenizer: google/flan-t5-base
+Task: Review prediction
+Dataset: CDs_and_Vinyl
+Approach: Prompting - 0 shot - 3 reviews 
+Sampling method: 2
+Device: cuda
+
+Data:
+                        user_id     item_id  rating    review      timestamp
+0  AGKASBHYZPGTEPO6LWZPVJWB2BVA  B002MW50JA     5.0  LOVE IT!  1452650777000
+1  AGKASBHYZPGTEPO6LWZPVJWB2BVA  B008XNPN0S     5.0    LOVE!!  1452650764000
+
+Input-Output example:
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Restoration | If you like Phillips, Craig and Dean you will definately love this one! Their music as always is some of the best! As always they flow as well as the music. Their talent is some of the bst the industry has seen! A must have for all music lovers!
+Two Seventeen | The stage is set and a new sound is emanating from the Christian front and it is unlike any heard before. Four guys with alot of talent compromise PAX217. The album is produced by Howard Benson, who takes the talent and blends it with a great sound. This is a bit more then most forefront listeners are used too, but those of you who step out on a limb for this new album will be glad you did! We love this and our excited about the possibilities of where this band will go!If you could imagine combining 311 and Limp Bizkit with a little Reggae, you are close to imagining this group. Don't get it? Well run down and buy it now! You will be glad you ...
+Learning To Breathe | Switchfoot has done it again, and this time even improved on their first two cds. Their talents are far above their age, and are simply put amazing! With this third release Switchfoot is definately on the main stage of Christian Music (weren't they already ??). I write reviews for crimsonlight.com and hear all sorts of music and this cd is amazing! It is a definite buy for music lovers!
+
+Here are some examples of other users' reviews for the item:
+Such depth of conviction and belief!The songs revolve around basic questions confronting many Christians: how to figure out the intricate relationship between faith and logic.Many believers at different moments in their lives share Nichole Nordeman's dilemma in trying to convince others, and themselves especially, about the reality of the Supreme Being, even when faith does not necessarily come in parallel with the rational train of thoughts that logic teaches.To believe in God is to be &quot;irrational&quot;. We simply believe despite our inability to explain the very thing that we believe in, when we just hold on to our faith despite 'logical' and 'scientific' evidences pointing to the contrary.The obvious conflict between faith - that realm of human experience that is independent of human reasoning and which revolves ...
+Looking through the eyes of a child, there is something in this offering that conveys a sense of simplicity and wonder in the music, words and delivery; one that brings out the inner yearning for something more than what we can see, hear, touch and feel; the faith to reach out for something eternal without necessarily having all our senses to prove that God stands with us.The lyrics in this set of songs are never &quot;presriptive&quot; but one that observes and asks the questions from the perspective of a child. Yet ironically, in asking these so-called &quot;simple&quot; questions, a certain measure of wisdom shines through.There is not a track that stands out as very strong. Most songs will take time to grow on you but be rest ...
+I got her first CD back in early 1999 and wore it out for several months because it was SO great! Naturally, I was excited by the prospect of a new Nichole Nordeman album. And she hasn't let us down! Her sound is &quot;bigger&quot; on this album, if that makes sense. She's expanded her horizons a bit without any drastic changes - a tricky balance that she does incredibly well. The lyrics are again beautiful and encouraging for both Christian and seeking non-Christians. And I love her cover of &quot;As.&quot; There's not a bad song on here. And, as someone else already stated, if you don't have her first album either - buy 'em both!
+
+The item description is This Mystery. What is the user's textual review of the item?
+
+Target: As with her debut, Nichole lays her life bare for listeners, writing eight of This Mystery's songs by herself and two more with producer Mark Hammond. The project showcases a deepening of her own faith experience and maturing as a vocalist and songwriter. And musically she branches out, too. While still preferring a heavy piano sound, This Mystery takes her in a stronger adult-contemporary direction as well. And, aided in part by touring with Avalon and Anointed, she's come out of her shell onstage as well. For so long, I was such a closet writer. To have to get out onstage every night and not only entertain people but be authentic and real at the same time has been a challenge. I've spent most of the last couple of years singing in churches and colleges and have really gotten my performance feet wet.<br />Life has been anything but cold for Nichole since her first album debuted. Its frank and honest questioning, organic, piano-driven music and vivid word pictures struck a chord with the industry and fans alike. The song yielded strong sales for a debut artist and put four songs high on the charts. To Know You and Who You Are both landed at the top of the adult contemporary chart while I Wish the Same was No. 2. The album's title cut, Wide Eyed, also was a top 20 hit.<br />Not a bad couple of years for a Colorado-raised waitress in Los Angeles who scraped together $200 to enter a contest sponsored by the Gospel Music Association's Academy of Gospel Music Arts. She won the contest with Why, the story of the crucifixion as told through the eyes of a child. A live version appears on the CD of This Mystery as a bonus cut, an appropriate inclusion since much of the discovery Nichole beckons listeners to experience, requires a child-like faith. Not bad for an entire album inspired by a Madeline L'Engel book. But it was a non-fiction work, Walking On Water, by the noted children's author's that stirred much of the mysteries in This Mystery.<br />I just really want to emphasize this notion that God is so much bigger than we thought or think. If we're open to that, we can find the hand of God in so many places. One of the mysteries in life is how a young woman finds inspiration from a children's author, returns to a child-like faith and takes a massive step in maturing.<br />crimsonlight.com
+
+
+
+Examples:
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Restoration | If you like Phillips, Craig and Dean you will definately love this one! Their music as always is some of the best! As always they flow as well as the music. Their talent is some of the bst the industry has seen! A must have for all music lovers!
+Two Seventeen | The stage is set and a new sound is emanating from the Christian front and it is unlike any heard before. Four guys with alot of talent compromise PAX217. The album is produced by Howard Benson, who takes the talent and blends it with a great sound. This is a bit more then most forefront listeners are used too, but those of you who step out on a limb for this new album will be glad you did! We love this and our excited about the possibilities of where this band will go!If you could imagine combining 311 and Limp Bizkit with a little Reggae, you are close to imagining this group. Don't get it? Well run down and buy it now! You will be glad you ...
+Learning To Breathe | Switchfoot has done it again, and this time even improved on their first two cds. Their talents are far above their age, and are simply put amazing! With this third release Switchfoot is definately on the main stage of Christian Music (weren't they already ??). I write reviews for crimsonlight.com and hear all sorts of music and this cd is amazing! It is a definite buy for music lovers!
+
+Here are some examples of other users' reviews for the item:
+Such depth of conviction and belief!The songs revolve around basic questions confronting many Christians: how to figure out the intricate relationship between faith and logic.Many believers at different moments in their lives share Nichole Nordeman's dilemma in trying to convince others, and themselves especially, about the reality of the Supreme Being, even when faith does not necessarily come in parallel with the rational train of thoughts that logic teaches.To believe in God is to be &quot;irrational&quot;. We simply believe despite our inability to explain the very thing that we believe in, when we just hold on to our faith despite 'logical' and 'scientific' evidences pointing to the contrary.The obvious conflict between faith - that realm of human experience that is independent of human reasoning and which revolves ...
+Looking through the eyes of a child, there is something in this offering that conveys a sense of simplicity and wonder in the music, words and delivery; one that brings out the inner yearning for something more than what we can see, hear, touch and feel; the faith to reach out for something eternal without necessarily having all our senses to prove that God stands with us.The lyrics in this set of songs are never &quot;presriptive&quot; but one that observes and asks the questions from the perspective of a child. Yet ironically, in asking these so-called &quot;simple&quot; questions, a certain measure of wisdom shines through.There is not a track that stands out as very strong. Most songs will take time to grow on you but be rest ...
+I got her first CD back in early 1999 and wore it out for several months because it was SO great! Naturally, I was excited by the prospect of a new Nichole Nordeman album. And she hasn't let us down! Her sound is &quot;bigger&quot; on this album, if that makes sense. She's expanded her horizons a bit without any drastic changes - a tricky balance that she does incredibly well. The lyrics are again beautiful and encouraging for both Christian and seeking non-Christians. And I love her cover of &quot;As.&quot; There's not a bad song on here. And, as someone else already stated, if you don't have her first album either - buy 'em both!
+
+The item description is This Mystery. What is the user's textual review of the item?
+
+Target: As with her debut, Nichole lays her life bare for listeners, writing eight of This Mystery's songs by herself and two more with producer Mark Hammond. The project showcases a deepening of her own faith experience and maturing as a vocalist and songwriter. And musically she branches out, too. While still preferring a heavy piano sound, This Mystery takes her in a stronger adult-contemporary direction as well. And, aided in part by touring with Avalon and Anointed, she's come out of her shell onstage as well. For so long, I was such a closet writer. To have to get out onstage every night and not only entertain people but be authentic and real at the same time has been a challenge. I've spent most of the last couple of years singing in churches and colleges and have really gotten my performance feet wet.<br />Life has been anything but cold for Nichole since her first album debuted. Its frank and honest questioning, organic, piano-driven music and vivid word pictures struck a chord with the industry and fans alike. The song yielded strong sales for a debut artist and put four songs high on the charts. To Know You and Who You Are both landed at the top of the adult contemporary chart while I Wish the Same was No. 2. The album's title cut, Wide Eyed, also was a top 20 hit.<br />Not a bad couple of years for a Colorado-raised waitress in Los Angeles who scraped together $200 to enter a contest sponsored by the Gospel Music Association's Academy of Gospel Music Arts. She won the contest with Why, the story of the crucifixion as told through the eyes of a child. A live version appears on the CD of This Mystery as a bonus cut, an appropriate inclusion since much of the discovery Nichole beckons listeners to experience, requires a child-like faith. Not bad for an entire album inspired by a Madeline L'Engel book. But it was a non-fiction work, Walking On Water, by the noted children's author's that stirred much of the mysteries in This Mystery.<br />I just really want to emphasize this notion that God is so much bigger than we thought or think. If we're open to that, we can find the hand of God in so many places. One of the mysteries in life is how a young woman finds inspiration from a children's author, returns to a child-like faith and takes a massive step in maturing.<br />crimsonlight.com
+
+Output: Good
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+9 | Machines versus rag dolls, who will win? In a nutshell, that's the short version of this story, but of course there is more to it than that. The helpless humans faced a grim battle against the machines and lost (sounds familiar?). A scientist gave life to 9 rag dolls before he passed away and the world is in their hands. Tim Burton is listed as a producer of this animated movie and when I saw Danny Elfman's name attached to this, well... you know what I was thinking. Alas (read my rant after the jump) it wasn't to be, but what I found instead surprised me. This movie has a strong cast including Christopher Plummer, Elijah Wood, Martin Landau and Jennifer Connelly. Already doing well at the ...
+Lazarus Project | Last year I got hold of a promo score for The Lazarus Project (AKA The Heaven Project) and I was excited. It had some fx on it, but I could hear that this was a quality score. I asked Brian if this would every be released, but at that point, no one knew. It was finally released by Varese Sarabande and I couldn't be happier.Simply sensation stuff from Brian Tyler. The moody guitar and the amazing sounds that Brian puts in this score is mesmerizing. Every tone has me crying for more, dreaming for more, wanting more and craving it all!It starts off with the excellent 'Jaybird' and it only gets better. Brian Tyler knew where he had my from the start and kept me there, listening ...
+2012 Soundtrack | So I watched 2012 yesterday, you know the one, the world is getting destroyed. The Mayas made this prediction long ago. It turns out to be true and the whole world goes to hell. Sounds pretty cool and the movie was as expected. The CGI and production value was through the roof and you even cared for the characters. I carefully listened to the score by Harald Kloser and Thomas Wander and thought it wasn't too bad. Sure there's some generic action stuff in there, but it plays along well with the scenes. What's interesting about Roland Emmerich movies when it comes to the music is that, as of his last few films, he always chooses Harald Kloser and Thomas Wander to do it and even better, ...
+
+Here are some examples of other users' reviews for the item:
+It's annoying and never used correctly and acts as a summary word to indicate something impresive. The children of today should learn their English. That said, this is an IMPRESSIVE stand alone score... very Hans Zimmer and not worth the effort to compare it to the effort for the previous film (though its seems LESS religious/mysterioso). I just wish some day Zimmer would use a chorus where we can understand what they are singing. THE WORDS would be nice. In the case of his score for King Arthur the chorus was singing a single vowel: "A" throughout. And of course I won't bother to see the film since many years ago when the book first came out I tossed it across the room, the ending was so ...
+This CD follows the movie really well. I have always loved Hans Zimmer's work, and this piece doesn't disappoint. There are some themes that i wish were more prominent, but overall this is a must-have for fans of Zimmer and the movie. My favorite song is Science and Religion. Some might not approve of the length, but the melodies are well-rounded-out and the overall experience grand. This soundtrack echoes the epic aspect of the film very well, I strongly recommend it. Enjoy!
+I think we can easily make two categories of film music fans: those who admire Hans Zimmer and those who accuse him of destroying the film music industry. In the history of film scores, there is a "before" Hans Zimmer and there is also an "after" Hans Zimmer. He litteraly changed the face of film music for ever. His sound is his. Like the funny horror themes of Danny Elfman, the melodic waltz of Patrick Doyle or the funny suburbian sounds of Thomas Newman, you hear the powerful and sad-heroic synths of Mr. Zimmer and you know it's him. In fact, he was copied so much that he had to starts his own school of film music just to teach others how to immate him correctly (Harry ...
+
+The item description is Angels & Demons Soundtrack. What is the user's textual review of the item?
+
+Target: Most agree that Hans Zimmer delivered a great score for The Da Vinci Code in 2006. Particularly the theme `Chavaliers de Sangreal' was constructed in such a way that screamed instant classic. When the next movie in the series was to be made, the natural choice had to be yet again Hans Zimmer. This time his chances got stronger by including the violin of Joshua Bell who recently added a touch of class to the James Newton Howard score Defiance. I wouldn't call Zimmer and Bell the dynamic duo since it's been so overdone for him and James Newton Howard for The Dark Knight, but it sure is a tantalizing partnership.<br />Track List<br /><br />This time the score is a bit shorter, 14 minutes in fact, but the overall theme hasn't changed much. It's the same type of style, just with added aggressiveness and feel. When it opens with `I60 BPM' there's something un-Zimmerish about it all, yet you can clearly feel, as the cue goes on, the Zimmer production. It used a choir for the thematic elements which is a great choice and a great start. It is one of the best cues on the score and 1 minute and 13 seconds in you can already hear the main difference between Angels & Demons and The Da Vinci Code. This score has a darker and much more aggressive feel to it. The way the choir just shouts at you and the particularly the percussion is much more violent here.<br /><br />`God Particle' was one of the cues that sounded amazing when listening to the samples, and judging by the beginning you would think you have another classic. Smart use of Joshua Bell's violin gives us a nostalgic feeling as parts of `Chevaliers de Sangreal' are being played. That doesn't last as it all blurs into a more ambient segment. I do like that Hans Zimmer has clearly defined the science part and the religious part. This is a common theme throughout the score with the science being represented by subtle electronica and the religious parts being defined by ambience, choirs and Joshua Bell.<br /><br />There are some great cues on here and particularly the long ones. `Air` is over 9 minutes and it is a wonderful cue with choirs, church bells, electronic sounds and violent outbursts of percussion and mentioned choirs. `Science and Religion' is a great cue built on the very foundation of this score, the battle between science and religion. I've heard it before, but not by Zimmer. The theme being used here is almost identical to Christophe Beck's most excellent love theme `Moment of Happiness' for Buffy & Angel in Buffy the Vampire Slayer The Score. Just one tone sets it apart, but I don't feel bad about that, because there's a lot more to it and Joshua Bell's violin is perfect for this purpose. The cue itself is 12 minutes and 27 seconds long and with first listen, it was good, but when listening to the details, it's a great cue, possibly the best on the whole soundtrack. Around 5 minutes and 27 seconds in, Zimmer turns on the heat with a more aggressive theme, more Zimmer-like. I like the way it changes pace and form, making this an instant hit for me with enough Zimmerism to keep me happy while Bells violin doesn't hurt. Add the great theme by Beck which I truly love and this cue feels very special to me.<br /><br />After listening to the full score a few times, there is one ingredient missing. Unlike The Da Vinci Code, this soundtrack doesn't have a strong theme like `Chevaliers de Sangreal'. It hurts the overall score quite a bit, but the sheer quality of the work here almost makes up for it. That theme is heard a few times in this score, most notably the beginning of `God Particle' and also in `503` the last cue. It still is miles away to be near anything like the theme from the first movie. Still, I feel that overall it is a stronger effort than The Da Vinci Code overall, but lacks a defining theme. Cues like `Black Smoke', `Election by Adoration' and `503` make up for that. `Election by Adoration' is the closest we get to a defining theme here and it's a great effort even though it fades in comparison to the stellar theme from the first movie. I really like what Zimmer and Bell has done here and commends them on their great effort. I like this score better than I do The Da Vinci Code and that says a lot. Angels & Demons doesn't disappoint Zimmer-fans and fans of the first movie score so it is without any hesitation that I can wholeheartedly recommend you buy this for your collection (if you haven't already).
+
+Output: Review: 9 | Machines versus rag dolls, who will win? In a nutshell, that's the short version of this story, but of course there is more to it than that. A scientist gave life to 9 rag dolls before he passed away and the world is in their hands. Tim Burton is listed as a producer of this animated movie and when I saw Danny Elfman's name attached to this, well... you know what I was thinking. Alas (read my rant after the jump) it wasn't to be, but what I found
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Winds of Christmas | Both of the two "Winds of Christmas" discs by Shardad Rohani are worthwhile additions to the Christmas music libraries of any New Age enthusiasts (people who enjoy David Arkenstone or Mannheim Steamroller). Neither is available in most stores, and I expect that this first volume may be completely unavailable very soon. I included selections from both in an anthology of Christmas music that I put together for friends and family every year, and these pieces received rave reviews from several recipients. Not every arrangement is top-drawer, but there's certainly enough on each of these discs to add variety to anyone's Christmas music library. (See my review of Volume 2 as well.)
+A Christmas Album | Most Christmas music enthusiasts will not like everything on this disc, but if Michael Crawford's presentation of "O Holy Night" does not give them goose bumps, there's something wrong with them. I do not especially like this song, but Crawford's performance is worth the price of the disc -- and then some. Interestingly, Crawford's "O Holy Night" is also featured on the Trans-Siberian Orchestra DVD "Ghosts of Christmas Eve," though it is quite a contrast to TSO's usual fare. This is not to say that "O Holy Night" is the only worthwhile track. A number of others are quite good. It's just that this version of "O Holy Night" is so powerful that everything else pales by comparison.
+Winds of Christmas 2 | Every year for 20 years, I have put together an anthology of Christmas music (at first on tape, now on CD) as gifts to friends and family. For the 2006 collection, I purchased a number of discs through Amazon, including both volumes of Shardad's "Winds of Christmas." Many recipients of this year's collection commented that it was the best ever, partly because of the "new" selections from these two discs. While not all arrangements are winners, both are full discs and well worth adding to the Christmas library of anyone with a taste for New Age arrangements (such as those by David Arkenstone or Mannheim Steamroller).
+
+Here are some examples of other users' reviews for the item:
+ANYTHING DAVID ARKENSTONE HAS HIS HANDS ON TO GOING TO BE GREAT!!THIS IS NO EXCEPTION. THIS IS A WONDERFUL CHRISTMAS CD FOR ANY-ONE WHO LOVES CHRISTMAS MUSIC. THE ARRANGEMENTS ARE GREAT. THISIS A MUST FOR ANYONE WHO LOVES GOOD CHRISTMAS MUSIC.....
+David Arkenstone does it again with these enchanting melodies. This is a must get for any Arkenstone fan
+
+The item description is Christmas Pan Pipes. What is the user's textual review of the item?
+
+Target: Despite the emphasis on pan pipes in the title, this disc is characteristic Arkenstone -- at least on a par with, and perhaps better than, his other Christmas albums.  The arrangements are well rounded out with guitar and keyboards.  Those who already have a David Arkenstone Christmas disc do not need to worry about duplication.  Even when the songs are the same, the arrangements are different.
+
+Output: review: Winds of Christmas 2
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+
+
+Here are some examples of other users' reviews for the item:
+"John Barleycorn" has in common with much of the Beatles' work that -- even if you've listened to it a thousand times -- when you come back it sounds as fresh and new as the very first listening.The entire album is great--and covers an amazing amount of "musical territory." It would be on my short list of nominees for "greatest album of all time."Let me also add that I was fortunate enough to see the briefly-reunited Traffic at Columbia, MD's Merriweather Post Pavilion (the year may have been 1994), not too long after the release of their much-underrated "Far From Home" - a fine album in its own right. It was a concert for the ages. Among his many other talents, Winwood is a superb guitarist.
+Not only is this my favourite traffic recording, its one of my favourite recordings of all time...I could actually do without the bonus tracks.
+Times had changed by 1970 ... Dave Mason was off to a full solo career, Chris Wood had joined Ginger Baker's Airforce, and Capaldi was not so sure what he wanted to do, but had not yet decided to quit the drums and be a singer.This is how this album begins, with only Stevie Winwood in the studio, having already penned a couple of songs -&quot;Every Mothers Son&quot; and, only included in this remastered version, &quot;Sittin' Here Thinkin' of My Love&quot;- and ready to record a solo album.Anyway, that was the plan but was not what ended up happening. Instead, whatever the real reason was -several stories are told- soon enough Capaldi and Steve's brother, Chris Wood, joined him and this became Traffic third studio album.Although Mason ...
+
+The item description is John Barleycorn Must Die Remastered. What is the user's textual review of the item?
+
+Target: The title track makes this worthwhile if you're a Steve Winwood fan. Volume levels seemed a bit low compared to other CDs.
+
+Output: positive
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Metallica Greatest Hits (Import) Music CDs | Expected more HITS.
+A Group Called Smith/Minus-Plus | Been looking for this one for awhile, great female vocals.
+This House Is Not For Sale | Sorry his voice doesn't sound the same.
+
+Here are some examples of other users' reviews for the item:
+personally a wonderful compilation of her many great tunes and a good add to a large and wide variety of a musical collection.
+The CD case arrived cracked
+Love this CD. Reba's music is timeless and she has an unforgettable and unmistakable voice.
+
+The item description is Reba #1's. What is the user's textual review of the item?
+
+Target: Reba always delights
+
+Output: a great add to a large and wide variety of a musical collection. The CD case arrived cracked Love this CD. Reba's music is timeless and she has an unforgettable and unmistakable voice. The item description is Reba #1's.
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+
+
+Here are some examples of other users' reviews for the item:
+On &quot;Exile&quot; Numan ingeniously blends melody, beat, darkness and religious angst. The resulting music is very sonically satisfying and showcases his otherworldly vocals.
+After rediscovering his roots and great acclaim with the wonderful 'Sacrifice', Numan returns to a 'fuller' sound with 'Exile'. Guitars and percussion loops are layered with lush and eerie synthesisers and bass lines to provide a strangely spiritual album. His attacks on God are more to the fore and vitriolic than ever before, and the lyrics here have aroused some negative comments from some of his Christian fans, but Numan has always been fiercely honest and should, at least, be applauded for that. The single 'Dominion Day' kicks things off in fine style, with chunky guitars and a dark arrangement. And that's the way things stay, really, right up until the end of the title (and final) track. The lack of style variation here is a good ...
+Gary Numan. Cars. That's what a majority of consumers and record execs generally know of Numan. That's all I knew about Numan. Last year, someone let me borrow Exile. I didn't want to give it back. This is quite possibly, one of the greatest albums ever made. Sure, many people would love to disagree with me, and that's great. Exile is a continuous journey thru all nine tracks (I don't count the live track, which doesn't belong). Numan sets a tone starting with &quot;Dominion Day&quot; that doesn't let up, all the way thru to the last track, &quot;Exile&quot;. The lyrics are amazing. The best he's ever written. The melodies are hook driven. Numan's voice is top notch and blends &quot;frightengly&quot; well with the music. &quot;Sacrafice&quot; and &quot;Pure&quot; ...
+
+The item description is Exile. What is the user's textual review of the item?
+
+Target: "Exile" is a concept album written around a central question, which is, 'what if God and the Devil were the same person and heaven and hell were the same place and it's only our perception that makes them appear to be one or the other?'. Numan at times uses a strong, loud and agressive back drop to put forward his ideas ("Dominion Day", "The Angel Wars") whilst at other times a quieter, sneering, almost nasty hush like quality ("Exile", "Prophesy") is used to convey his misgivings towards 'blind faith'. The album is a brooding, dark and very sombre, almost haunting piece of work. It takes the atmosphere of his previous album ("Sacrifice") and adds a large degree of menace. Many of the songs are immediate in their sonic appeal. Others take a while. Overall, it's vintage Numan twisting and meshing the gothic-rock genre into his own unique style. Class.
+
+Output: positive
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Don't Forget Me | This CD has 24 tracks all taken from his weekly radio broadcasts,called the Coke Show,as that beverage sponsored it.Mario sings as only he could,but sometimes he may be considered slightly OTT,others might say enthusiastic.Lack of time also meant he was unable to rehearse enough,so some songs are not sung as well as his best offerings of the same track,however many tracks are very good.Recording quality is very clean and clear thanks to it being digtally remastered,especially as the tracks are so old,all from 1951/52,however I found them a little too much on the bright side.I tried listening to this CD again,but from a greater distance,about 20 feet from the speakers,it does for its age give a very realistic sound image of Mario singing and the violins in ...
+Anthology | This review was first written by me for the UK site, hence the references to the USAA word of warning, the clever people at amazon.co.uk have the policy of grouping reviews for similar sounding CD's, even if they are TOTALLY DIFFERENT, so as there are several Supremes' Anthologies, I fear my review will end up in places where it does not belong.This review is only for "Diana Ross & The Supremes Anthology" amazon's code = ASIN: B00005T7WF , black background to front cover with the Supremes on, note microphone is on the left, the CD was issued in 2001 and has 26 tracks on CD1 and 24 tracks on CD2, Amazon.co.uk claim 23 tracks on CD2. SOME OTHER ISSUES ARE MONO, SOME HAVE LESS TRACKS, ALL HAVE ...
+Diana Ross and the Supremes - The Ultimate Collection | When I listen to music, I want it to sound as close to the original studio performance as poss, so it should be stereo (where it exists) and remastered from the original master tapes, any faults or distortions etc. should be removed electronically.An example of what should be done and what it should sound like is "The Motown box" set.Comparing a track from this CD to the box set is like comparing a roller skate to a Rolls Royce, as ALL THE TRACKS ARE BAD QUALITY MONO. Yes there are die hard enthusiasts who insist Motown must be heard in mono, don't they have 2 ears.There are statements made that the stereo versions were done by inexperiened engineers as an afterthought and were poor mixes, yes indeed ...
+
+Here are some examples of other users' reviews for the item:
+ok
+Little Richard gave it his all, and this 2 Cd set gives you a good selection of outstanding music that is timeless.
+Most of Little Richards best music is on here, The sound quality is great and I'm glad I purchased this CD
+
+The item description is She Knows How To Rock - The Singles As & Bs ORIGINAL RECORDINGS REMASTERED SET. What is the user's textual review of the item?
+
+Target: Decent transfer but you may prefer others, see &#34;The Very Best Of Little Richard&#34; by commercial marketing + &#34;Little Richard-40 Original Hits & Rarieties&#34; + &#34;British UK singles&#34; and &#34;Rocks&#34; on the Bear label.<br />IMHO &#34;British UK singles&#34; has the best sound, being smoother and beefier in the bass. However some like this one offer many more tracks. If you google enough you will find mp3 samples to listen so you can judge for yourself.
+
+Output: good
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Tres Hombres Expanded 2006 | Having grown up with this album on vinyl, I've been consistently disappointed with all the CD releases of this gem. Buried under overdubs and mountains of reverb (most noticeable on the drums), somebody should've been smacked around for allowing the CDs to be released. With this re-issue, they finally got it right: crisp, immediate, in your face. Exactly what I remember from the vinyl but cleaned up. While the added live tracks are a welcome addition, the sound quality isn't the best. Nonetheless, this remains, in my opinion, ZZ Top's best work and a must-have.
+Soul Parking | Being fortunate enough to have seen this band more times than I can remember and having known them back in the day, you could say that I'm a little biased. However, this album and the follow-up ('Toast of the Town') are pop/roots-rock gems. Well over a decade later and their sound still holds up. NOT to be confused with the bands Gein & The Graverobbers or those other "Graverobbers" from Michigan.How would I describe them? Well, they're hard to pigeon-hole but the best I can come up with would be Uncle Tupelo meets Jason & the Scorchers or lo-fi Matthew Sweet circa 'Girlfriend' with a sprinkling of the Rave-Ups and the Plimsouls. I don't know; you be the judge.The only travesty bigger than these albums being out-of-print ...
+
+Here are some examples of other users' reviews for the item:
+
+
+The item description is Tied to the Tracks. What is the user's textual review of the item?
+
+Target: I have to admit that I'm a little biased: I'm a huge Treat Her Right fan and think that everything they released in their too-short lifespan was awesome.  It's 20 years later and I still listen to their material on a regular basis.  The first, self-titled album gets all the accolades but I find myself putting this album on more often.  Just my preference, I suppose.  I find it criminal that their discs are out of print, but this one seems to sell for less than the others on the used market and it's a steal.  Grab this one and the others while you still can.
+
+Output: review: 'Tied to the Tracks'
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+A Pentatonix Christmas | Love this group, good album
+That's Christmas To Me | Love it, wonderful group!
+50th Anniversary Collection | Love, love, love it! All your favorite songs rolled into one album,very happy with this purchase!
+
+Here are some examples of other users' reviews for the item:
+SO FREAKINF GOOD IM CRYING.
+Meets and exceeds all expectations! Love this group!!!
+Another hit by this terrific group! Quite a range of music!
+
+The item description is Cd Pe Pentatonix Iv Classics. What is the user's textual review of the item?
+
+Target: Another great album, working on getting them all!  Love Bohemian Rhapsody!
+
+Output: Five Stars
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Holy Wood In The Shadow Of The Valley Of Death Explicit Lyrics | Marilyn Manson returns to the rock-hard heavy sound he produced with &quot;Antichrist Superstar&quot; with &quot;Holy Wood&quot;. The first single off the cd, &quot;Disposable Teens&quot; is just one of the highlights. &quot;The Love Song&quot; and &quot;Target Audience&quot; are two more notables off this 19-track epic.Overall though, all 19 songs on this disc carry their own weight. Lyrically this cd I feel is very thought-provoking. Manson's third release proves that he is not just a flash-in-the-pan. Musically he and his group have evolved into some great musicians. The song writting, in my opinion, proves it on &quot;Holy Wood&quot;.While Manson left the glam rock behind on &quot;Holy Wood&quot;, Manson still wrote some very intellectual lyrics backed with heavy guitars and pounding drums. This is definitely Manson's best work since &quot;Antichrist ...
+A Change Of Seasons EP | This Dream Theater EP is a nice change of pace from their studio work. The opening title track is a 23-minute epic that is just simply vintage DT. Odd-metered and VERY intricate music from start to finish. The difference on this compared to their full-length studio work is that they actually included some cover tunes that were recorded live. DT covers quite a range from Journey's &quot;Lovin', Touchin', Squeezin' &quot;, Pink FLoyd, Elton John and even Queen. While the title track is a terrific listen, the cover tunes are also great to check out as well. It's a showing of the bands that DT seem to have been influenced by. &quot;A Change Of Seasons&quot; is a definite keeper mainly due to the covers they perform. It's not ...
+Set This Circus Down | Tim McGraw really impressed me on his newest CD, &quot;Set This Circus Down&quot;.This is the first McGraw disc that I have actually bought.....I got mainly for the song &quot;Things Change&quot; (performed at a country music award show in 2000), but I quickly found myself enjoying each and every song on here.&quot;Telluride&quot; is a really nice toe-tapping, easy on the ears type tune.&quot;Things Change&quot; I think says a lot about music being criticized so much today. I feel that too many people are way too critical of music. Seems like many, in my opinion, are disecting way too deep when cutting down an artist and his/her music.McGraw says it best when he sings &quot;....it's just good music if you feel it in your soul&quot;.&quot;Angel Boy&quot; is a great ...
+
+Here are some examples of other users' reviews for the item:
+I hate to say it, Dave, but I've lost a lot of faith in you. I've been a faithful listener to Megadeth since 1992's Countdown to extiction, and I understood Dave when he tried to expand his horizons with &quot;Risk&quot;, but this sound just simply isn't working. Megadeth is trying to appeal to a demographic that simply doesn't exist, and will never listen to them.Dave, I'm sorry but you JUST CAN'T SING. In your metal music, it works just fine, but the singing in &quot;Coming Home&quot; is a sacrilege of egregious proportions. And &quot;Moto Psycho&quot;!?!? Here's an idea, guys: don't think that a &quot;cool&quot; pun alone will carry the song, 'cause god knows that the music in that song won't.Now, despite those two horrendous songs, there are ...
+Let me first say that I, like every other Megadeth fan, had my doubts they could make another great album after the ridiculous and disgusting album Risk was. Well, I was wrong this album is across between "Cryptic.." and "Countdown to extinction". No it is not a return to their Heavy thrash days 1990 and before, but it still has its thrash moments and excellent riffing that was lacking on the the last album. This cd is awesome, don't let those Wannabe Megadeth fans fool you by saying that Its (bad) and not heavy because it is a heavy album. Like I said very similar to "Countdown" in many aspect.
+After the truly dissappointing and heart breaking &quot;Risk&quot;, Megadeth are back to the form on their latest. With a sound somewhere in between Countdown to Extinction and Rust in Peace, its refreshing to hear a band with great solos, jack hammer riffs and excellent fast drumming in this day and age. While the songs are no where near as accessible as the last three 'deth disks, there are some catchy tunes such as Moto Psycho, Promises and Recipe for Hate. If nu metal is your thing then dont bother with this one. But if you have a soft spot for classic virtuoso metal and hard rock, then you will truly love this one.
+
+The item description is The World Needs A Hero Explicit Lyrics. What is the user's textual review of the item?
+
+Target: Dave Mustaine wrote about 99% of all the songs on Megadeth's newest effort, &quot;The World Needs A Hero&quot;. And I must say that he out did himself.Megadeth gets off to a fresh start after leaving their record label, Capitol. Debuting on a new label, Megadeth gets back to the heavy metal music they have been known for from the start.The cd's opens strong with &quot;Disconnect&quot;, one of many 'heavy' songs on the disc.The cd's first single, &quot;Moto-Psycho&quot; is the catchiest tune on the cd, I really enjoy both the guitar and drum rhythms on that song.In my opinion, &quot;When&quot;, which is the last track on the disc, has to be one of the most sinister songs I have heard in a long while. That is one you have just got to check out for yourself.Anyone who is a Megadeth fan I feel will enjoy this disc from beginning to end. For anyone who may think of purchasing this one as their first Megadeth cd, I highly recommend adding this to your cd collection. It's definitely one that I think you'll pullout to listen several times to. This one certainly does not disappoint.
+
+Output: I've been a faithful listener to Megadeth since 1992's Countdown to extiction, and I understood Dave when he tried to expand his horizons with &quot;Risk&quot;, but this sound just simply isn't working. Megadeth is trying to appeal to a demographic that simply doesn't exist, and will never listen to them.Dave, I'm sorry but you JUST CAN'T SING. In your metal music, it works just fine, but the singing in &quot;Coming Home&
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Gamblin' Woman | This cd is worth the price just for Jr Watson. I am not a huge Canned Heat fan, but Jr Watson is what it's all about!!
+Torre Alfina Blues Festival 2007 | I love this cd. It is a must for your collection. I also have the Live From Outer Space cd -essentially same cd minus the first track. The Live From Outer Space cd is the cd that is authorized by Jr Watson FYI.
+Kick It Around | Another great cd by James Hunter. He can do no wrong. Love his unique vocals, great guitar. You won't be disappointed.
+
+Here are some examples of other users' reviews for the item:
+This is a must-have recording for fans of true, traditional Chicago blues, as well as early roots/rock/soul music. This is the best Chicago blues band on the planet: Kim Wilson with Barrelhouse Chuck, Billy Flynn (guitar), Jeremy Johnson (guitar), Larry Taylor (bass), Richard Inness (drums)and Sax Gordon (take a guess what he plays). You just don't get a better ensemble than this--everyone involved in this project brings chops, passion and blues wisdom that can't be matched. Period. The vibe these musicians captured in the studio is a rare, catching-lightning-in-a-bottle achievement. All of the tunes are single-take recordings and the whole disc just reeks of musical magic. Smart tune selection, covering a range of material. The playing is understated but powerful throughout, arrangements are tight and often witty. ...
+This record sees pianist Barrelhouse Chuck (Charles Goering) and harmonica player Kim WIlson leading a bunch of blues veterans including Larry Taylor on bass, Billy Flynn and Jeremy Johnson on guitars, Sax Gordon and Richard Inness on drums on a selection of Chicago blues favourites and dividing the vocals between them. The title track is written by Chuck and is one of the best tracks here, very authentic and featuring superlative harp from Kim, and Chuck and Kim also co-wrote the instrumental "K & C Boogie" (get it?). Elsewhere it's a nice collection of vintage blues songs which are slightly familiar but not overplayed, such as Chuck Berry's "Thirty days", Floyd Jones' "Stockyard Blues" and Willie Dixon's "Three hundred pounds of joy" - done as an instrumental. ...
+
+The item description is Driftin' From Town To Town. What is the user's textual review of the item?
+
+Target: I will keep this review short and sweet. Buy this cd , it is one of the best blues cd's of 2013 . You can't go wrong with this group of guys . And with Billy Flynn on guitar why would you pass it up.
+
+Output: Five Stars
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+The Immaculate Collection | This truly is a greatest hits album, because not all of the Queen of Pop's hits could be included on this album because she had so many. Among those missing are Dress You Up, Angel, True Blue, Who's That Girl, Causing A Commotion, Oh Father, Keep it Together, and Hanky Panky. It plays almost as a none-stop dance album with the exception of the ballads "Crazy For You" and "Live To Tell". It's amazing to hear her transition from cute bubblegum pop starlet with songs like "Borderline" to the sexual icon of "Vogue" and "Justify My Love". No wonder this album sold an amazing 10.8 million in just the U.S. alone and an amazing 25 million worldwide.It begins with a slight remix of the song that put ...
+True Blue | With this album Madonna found maturity and defined 80's pop music. Her voice on this record has a deep mature sound and in my opinion "True Blue" contains Madonna's best vocals ever. The Madge completely reinvented herself with this record, became even more sexual and controversial with this album's music videos. This album like the last one was a huge no. 1 record and sold an amazing 8 million copies in the U.S. and an even greater 24 million worldwide.Papa Don't Preach- This song is really a great statement about not giving a baby up, but keeping and raising it with the father despite her father's wishes. It was bound to be controversial as teenage pregnancy on mainstream radio was simply unheard of at the time. Naturally, ...
+Like a Virgin | While Madge was very popular with her first album (1983), it was in 1984 when she released the #1 smash hit "Like A Virgin" that the entire world stopped to pay attention the the 25 year old. With her tough-girl lyrics which showed a woman could be sexual and still in control, she became an icon for young liberal girls everywhere. The CD was #1 for weeks and eventually went on to sell over 10 million copies in the States alone.Matiriel Girl- Remains a very famous song today and has some of the most clever lyrics about not wanting a man who dosen't have the credentials she wants, although the music video told a rather non-matirielistic story.Angel- Another top 5 hit for Madonna, and her singing in ...
+
+Here are some examples of other users' reviews for the item:
+Now when someone asks you whether you like Madonna, you're going to get strange looks if you say yes and aren't a girl. However, despite any guilty pleasure status Madonna may have for males, anyone with an open mind will recognize just how great of an artist she is (well...singer - she doesn't actually write or play any of the instruments). "Like A Prayer" is one of many classic pop albums by Madonna, and even though it sounds slightly dated (due to the 80's sound), it's still very high quality stuff. Madonna herself has a very energetic, fun and sexy voice that greatly enhances any song in which she sings - she's definitely extremely likable. The lyrics themselves are also well-written and fun to pay attention to ...
+First of all I'm not a Madonna fan. When this album came out in 89, me and my buds were all hardcore headbanging maniacs. If anyone even knew I had this album, my life might have been over. Why did I buy it? 1989 was a crazy year for me, (left home on bad terms, bitter/sweet first love relationship, experimentation). Anywho when I first heard the song Cherish, I said to myself 'Wow wouldn't it be great to have someone feel that way about me? Then I heard Oh Father, and I had to break down and buy the record. It's not my kind of music, but it really struck me, and I still listen to it now and then (Hey I still headbang too! ) It's ...
+This is Madonna's best album from the 80s. It opens with the title track, which is a classic Madonna, and one of her biggest hits. &quot;Express Yourself&quot; also earns that honor of distinctive songs you think of when you think of Madonna. She collaborates with Prince on the funky &quot;Love Song&quot;. LIKE A PRAYER has some of her best ballads, like the ode to her mother on &quot;Promise To Try&quot;, or the excellent &quot;Spanish Eyes&quot;. There's some nice uptempos like &quot;Keep It Together&quot; and &quot;Til Death Do Us Part&quot;. This is definately one of her best albums of her career. &quot;Oh Father&quot; is a great ballad and truly sad. The singles from this album include the title track, &quot;Express Yourself&quot;, &quot;Keep It Together&quot;, &quot;Cherish&quot;, &quot;Oh Father&quot; and ...
+
+The item description is Like A Prayer. What is the user's textual review of the item?
+
+Target: While Madonna's first albums were full of #1 hits and good beats, it wasn't until 1989 with Madonna's fourth studio album, Like A Prayer that she became a true music artist. Madonna made strong statements on this album and made a true artistic statement with "Oh Father" and with the album's controversial music videos. Madonna had balls to challenge people's morals with the wonderful "Like A Prayer" music video in which she danced in a field of burning crosses, made out with a black saint in church, and dropped a knife to reveal the stigmata on her hand. Madonna proved once and for all she was an artist. In fact, the Catholic church and the Vatican were outraged by the song and video, and threatened to boycott Pepsi for using Madonna and the song in thier ad.<br /><br />1. Like A Prayer- This is truly one of the artists greatest achievments EVER. You almost wonder if the song is spirit-driven, in the way that it cleverly combines sex and religion together. These are some very creative lyrics. No wonder this song shot to no. 1 on the Billboard hot 100 along with this album, which sold over 4.2 million in the US alone and 17 million worldwide.<br /><br />2. Express Yourself- No longer the matiriel girl, Madonna sings about wanting a man who is good for you, not one who can buy you nice things. The video showed Madonna acting like a man herself and being completely in control. She said herself about the video, "The theme is that P*ssy rules the world." The song went straight to no. 2.<br /><br />3. Love Song- Madge fell into a slump with this duet with Prince. It had potential, but certainly fell short, becoming the album's only shortcoming.<br /><br />4. 'Till Death Do Us Part- Madonna sang this heartfelt ballad about her abusive relationship with actor Sean Penn whom she had been married to. It's a rather sad song about a woman who can't leave her husband, set to a pop beat.<br /><br />5. This ballad introduces the sad story of Madonna's mother, Madonna, who passed away when Madge was young. You can feel the loneliness of a sad child in this song in need of love and affectin.<br /><br />6. The album becomes upbeat once again with the pure pop love balled, "Cherish". The song was so popular it shot straight to no. 2. This song is so upbeat and happy it could make the darkest heart feel all warm inside.<br /><br />7. Dear Jessie- This is a sweet song written to a child, telling her to dream. It makes one feel like a child again themselves, lieing asleep being comforted and held.<br /><br />8. Oh Father- After Dear Jessie, the harsh sadness and reality of what most children felt as a child sinks in. "Oh Father" tells the heartbreaking truth of a child hated and psychologically abused by thier father. I cried the first time I heard it as I never felt loved by my father as well. The song went to no. 20 on Billboard. It's dark and somber video captured the loneliness which exists in every child, the need to be loved.<br /><br />9. After singing about family troubles, we move into the top 10 hit about keeping in touch with family. You can tell that Madonna was very close with her siblings.<br /><br />10. Spanish Eyes- One must wonder how this beautiful song about the Spanish mafia made it onto this mainstream album. It brings back the religios elements which deeply influenced Madonna on this album and in her life. "And if there is a Christ, He'll come tonight, to pray for Spanish Eyes."<br /><br />11. Act of Contrition- This last song is a confession of loyalty to Jesus Christ, and speaks of having a reservation in Heaven. However, at the end Madonna screams, "What do you mean it's not in the computer?!!!" Apparently, she had no reservation. A perfect way to end a very religious album.<br /><br />3.
+
+Output: The user who wrote the review rated the album: 'Greatest hits album of the 80s' 'Like a Virgin' 'Express Yourself' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song' 'Love Song'
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Half the City | This is one of the best new groups I have heard over the past year. I love the combination of rock and soul. I think this will be one of the best albums of 2014.
+Marshmallow World & Other Holiday Favorites | From one of the best voices out there! I love how he sings Marshmallow World in particular, but the whole CD is great for Christmas listening at dinners or parties.
+In Time | Probably the best album of the year. This is one I can play on shuffle and repeat. We've got fun songs that make you dance at your desk while working, and other sexy songs (When You Get to Heaven) that get you in the mood for love.Absolutely love the whole thing. Glad to see them back.
+
+Here are some examples of other users' reviews for the item:
+Refreshing, upbeat, different
+A politically correct Christmas album is not a Christmas album. Also arrangements are more jazz inflected. No real use of traditional instruments such as bells, jingle or otherwise, French horns, choirs, harps, strings, and his renditions of the secular Christmas songs pale in comparison to classic vocalists. No substantive content. Even Christmas Time is Here loses its broader meaning. Not a good attempt. His last good album was evolver and that was how many years ago?
+Fantastic
+
+The item description is A Legendary Christmas CD. What is the user's textual review of the item?
+
+Target: I already love John Legend; this collection makes me love him that much more.  This should be in everyone's Christmas collection (or music collection).
+
+Output: review: A Legendary Christmas CD
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+
+
+Here are some examples of other users' reviews for the item:
+I've never been a fan of RC but after sampling Rituals a little bit I decided to buy it and I'm pleasantly surprised....This is dark, solid and brutal without being noisy and tiresome at all...The production is great and at time you feel the world is coming to an end which I'm sure its what these guys wanted to create in the first place.If they keep this direction I'll keep buying their albums
+another good work from band
+this album is awesome would recommend to anybody who likes black metal
+
+The item description is Rituals. What is the user's textual review of the item?
+
+Target: I showed this to my christian friend and he literally started quoting the bible.
+
+Output: review:
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+For Ladies Only | One of Steppenwolf's best albums. Not a bad song in the whole CD. If you like Steppenwolf - you'll like this CD.
+
+Here are some examples of other users' reviews for the item:
+I haven't listened to Robin Trower since the 70's thought I'd give it a try so I ordered a newer one than I had already
+It is even better than I remember it! A true classic!It represents a time when they were at their peak.
+just to say , ive been so tired of detractors claiming robin is a mere hendrix clone, this lp and the vast array of his lps tapes and online videos show a tremendous artist with incredible talent . I really dig fool and me on this lp . Its so good you can just flip the vinyl and keep playing it over and over. HoPefully, he can continue to jam, a living legacy of the best of rock and roll
+
+The item description is Bridge of Sighs. What is the user's textual review of the item?
+
+Target: Perhaps Robin Trower's finest moment in his solo career. Guitar players will be in awe of the virtuosity on this CD.
+
+Output: review: For Ladies Only | One of Steppenwolf's best albums. Not a bad song in the whole CD. If you like Steppenwolf - you'll like this CD.
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews for other items, in the format item description | review:
+Amazing Grace - A Country Salute to Gospel, Vol. 1 | Fills my heart with nostalgia
+Country Gospel Greats | Takes one back to the old days of country singing
+The Greatest: The Number Ones | The man in black can send a message in his music
+
+Here are some examples of other users' reviews for the item:
+I actually bought this as a gift for someone else so I haven't heard all of the songs on this particular CD however I have heard The Statler Brothers sing many of them and they are beautiful. Love their harmony. This particular CD has a large number of songs on it so it is a great deal.
+We have the Statler Brothers' first volume of gospel music which we love...and we just purchased the second volume and it is just as good as the first. Highly recommend this product.
+Ever the masters of harmony in both song and friendship. I always anticipate about 30 minutes of clear, crisp harmony and a lot of fun with the different personalities. They are American treasures.
+
+The item description is The Gospel Music of the Statler Brothers: Volume 2. What is the user's textual review of the item?
+
+Target: They are talented and fit together beautifully with their harmonizing voices.
+
+Output: Five Stars
+
+================================================================================
+
+
+
+160 samples:
+{'reviews': {'n_examples': 176, 'BERTScore': {'precision': 0.840681330724196, 'recall': 0.8045351373201067, 'f1': 0.8216412365436554, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 0.00012967272455716977, 'precisions': [0.25884823035392923, 0.04718176060797973, 0.0163826998689384, 0.009054325955734407], 'brevity_penalty': 0.0035345440632830014, 'length_ratio': 0.15048521778379598, 'translation_length': 3334, 'reference_length': 22155, 'precision': 0.08286675419664545}, 'ROUGE': {'rouge1': 0.0785079468504713, 'rouge2': 0.012400500699753032, 'rougeL': 0.06305523586649076, 'rougeLsum': 0.06419454642207628}, 'METEOR': {'meteor': 0.05377746020138126}}, 'ratings': {}}
+
+320 samples:
+{'reviews': {'n_examples': 336, 'BERTScore': {'precision': 0.8429863114087355, 'recall': 0.8066970005276657, 'f1': 0.823905390820333, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 0.00015066922117997402, 'precisions': [0.2852584556477345, 0.059170600134861764, 0.025493277457656713, 0.01878690284487386], 'brevity_penalty': 0.0028256489318421686, 'length_ratio': 0.1455812333062362, 'translation_length': 6268, 'reference_length': 43055, 'precision': 0.09717730902128172}, 'ROUGE': {'rouge1': 0.07796233056624205, 'rouge2': 0.0140672682543387, 'rougeL': 0.06426802760802622, 'rougeLsum': 0.06299950288419903}, 'METEOR': {'meteor': 0.05164298382944412}}, 'ratings': {}}
+
+480 samples:
+{'reviews': {'n_examples': 496, 'BERTScore': {'precision': 0.8440245145991925, 'recall': 0.8068598884968988, 'f1': 0.8244841253805545, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 8.968998975547292e-05, 'precisions': [0.28633955309836445, 0.05717077937942829, 0.02170877237526977, 0.014728884254431699], 'brevity_penalty': 0.001875118989396086, 'length_ratio': 0.13737993892115133, 'translation_length': 8682, 'reference_length': 63197, 'precision': 0.09498699727687354}, 'ROUGE': {'rouge1': 0.07458137452839605, 'rouge2': 0.01406033620762067, 'rougeL': 0.06069117849671379, 'rougeLsum': 0.06065376857903057}, 'METEOR': {'meteor': 0.0488029820414703}}, 'ratings': {}}
+
+640 samples:
+{'reviews': {'n_examples': 656, 'BERTScore': {'precision': 0.8437507267950511, 'recall': 0.8065757777814458, 'f1': 0.8242102178131662, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 7.067030268068649e-05, 'precisions': [0.26902173913043476, 0.05131789137380192, 0.019132785692003742, 0.01304812834224599], 'brevity_penalty': 0.0016401791995247553, 'length_ratio': 0.13489906586947453, 'translation_length': 10672, 'reference_length': 79111, 'precision': 0.0881301361346216}, 'ROUGE': {'rouge1': 0.06931955070955878, 'rouge2': 0.013090457840812345, 'rougeL': 0.05742935037600738, 'rougeLsum': 0.05724542308913734}, 'METEOR': {'meteor': 0.04618227599314185}}, 'ratings': {}}
+
+800 samples:
+{'reviews': {'n_examples': 816, 'BERTScore': {'precision': 0.8426327470909146, 'recall': 0.8055475022570759, 'f1': 0.8231366854526249, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 5.009357563549838e-05, 'precisions': [0.25973926965007244, 0.04861393382651817, 0.017872268338133154, 0.012285440446109611], 'brevity_penalty': 0.0012276224879590525, 'length_ratio': 0.12982501286670098, 'translation_length': 13117, 'reference_length': 101036, 'precision': 0.08462772806520835}, 'ROUGE': {'rouge1': 0.06391980689143842, 'rouge2': 0.011621136869027599, 'rougeL': 0.05237801568319771, 'rougeLsum': 0.05227791685031706}, 'METEOR': {'meteor': 0.04266165593711028}}, 'ratings': {}}
+
+960 samples:
+{'reviews': {'n_examples': 976, 'BERTScore': {'precision': 0.842153150038641, 'recall': 0.8056123824637444, 'f1': 0.8229311366305977, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 6.375475393253293e-05, 'precisions': [0.2572788526920937, 0.046115387145582526, 0.015075721236209141, 0.009939376850415902], 'brevity_penalty': 0.0017459860628648133, 'length_ratio': 0.13604635516533792, 'translation_length': 16177, 'reference_length': 118908, 'precision': 0.08210233448107532}, 'ROUGE': {'rouge1': 0.06207762474199008, 'rouge2': 0.011399464961791438, 'rougeL': 0.0504563985493189, 'rougeLsum': 0.05027515268050223}, 'METEOR': {'meteor': 0.041591842993387855}}, 'ratings': {}}
+
+1120 samples:
+{'reviews': {'n_examples': 1136, 'BERTScore': {'precision': 0.8426460424359415, 'recall': 0.8066275082528591, 'f1': 0.8237063325416873, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 5.6007651529620085e-05, 'precisions': [0.25639354943801923, 0.046177883224350444, 0.014779513784158774, 0.009442753308069827], 'brevity_penalty': 0.001562148750926932, 'length_ratio': 0.13401784284903437, 'translation_length': 18417, 'reference_length': 137422, 'precision': 0.08169842493864957}, 'ROUGE': {'rouge1': 0.06346969356617863, 'rouge2': 0.012679315974845784, 'rougeL': 0.05145531577117322, 'rougeLsum': 0.05197045459944123}, 'METEOR': {'meteor': 0.04284318918084789}}, 'ratings': {}}
+
+1280 samples:
+{'reviews': {'n_examples': 1296, 'BERTScore': {'precision': 0.8426582014395131, 'recall': 0.8068252960105001, 'f1': 0.82382415028082, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 7.996746880351267e-05, 'precisions': [0.25689298043728426, 0.04645357090410691, 0.01498318214249312, 0.009649168808013005], 'brevity_penalty': 0.0022064649012432315, 'length_ratio': 0.14052120592743997, 'translation_length': 21725, 'reference_length': 154603, 'precision': 0.08199472557297433}, 'ROUGE': {'rouge1': 0.06612177457457843, 'rouge2': 0.014438395452527432, 'rougeL': 0.053762748923411444, 'rougeLsum': 0.05368357324719301}, 'METEOR': {'meteor': 0.04558085371592967}}, 'ratings': {}}
+
+1440 samples:
+{'reviews': {'n_examples': 1456, 'BERTScore': {'precision': 0.8428923447954131, 'recall': 0.8073331540921233, 'f1': 0.8241937038908292, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 6.366637508385846e-05, 'precisions': [0.25922195643963236, 0.047289143163634736, 0.01522771723945236, 0.009446628944087465], 'brevity_penalty': 0.0017471246896589418, 'length_ratio': 0.1360584225011134, 'translation_length': 23829, 'reference_length': 175138, 'precision': 0.08279636144670174}, 'ROUGE': {'rouge1': 0.06662680719314615, 'rouge2': 0.01523490109229537, 'rougeL': 0.05454395838886925, 'rougeLsum': 0.05432776819133915}, 'METEOR': {'meteor': 0.04663515298231789}}, 'ratings': {}}
+
+1600 samples:
+{'reviews': {'n_examples': 1616, 'BERTScore': {'precision': 0.8434483994277987, 'recall': 0.8077889404231959, 'f1': 0.8247079561547478, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 7.049238133952071e-05, 'precisions': [0.2596280003087134, 0.04761708782615853, 0.01578924786544815, 0.009899677376585495], 'brevity_penalty': 0.0018906797426182017, 'length_ratio': 0.13753609035326086, 'translation_length': 25914, 'reference_length': 188416, 'precision': 0.0832335033442264}, 'ROUGE': {'rouge1': 0.06671964098448013, 'rouge2': 0.015660214660058125, 'rougeL': 0.054502193920651656, 'rougeLsum': 0.054212932360346903}, 'METEOR': {'meteor': 0.046650109209965755}}, 'ratings': {}}
+
+1760 samples:
+{'reviews': {'n_examples': 1776, 'BERTScore': {'precision': 0.8437739139137505, 'recall': 0.8083092596818198, 'f1': 0.8251307990636911, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 7.257828749837245e-05, 'precisions': [0.2560490261684218, 0.04594807829582598, 0.014851097178683386, 0.00912578235412881], 'brevity_penalty': 0.0020424523569801552, 'length_ratio': 0.13901237711017977, 'translation_length': 28393, 'reference_length': 204248, 'precision': 0.08149349599926499}, 'ROUGE': {'rouge1': 0.0672488650161859, 'rouge2': 0.014860262215914905, 'rougeL': 0.05439334187834291, 'rougeLsum': 0.05430521348807651}, 'METEOR': {'meteor': 0.0471294900146267}}, 'ratings': {}}
+
+1920 samples:
+{'reviews': {'n_examples': 1936, 'BERTScore': {'precision': 0.8433769305259728, 'recall': 0.8082679402975996, 'f1': 0.8249078488423804, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 7.307996382821285e-05, 'precisions': [0.25728232779248955, 0.045125310300268645, 0.014041059461759388, 0.008439281017097764], 'brevity_penalty': 0.0021338527774911356, 'length_ratio': 0.1398635412343762, 'translation_length': 31343, 'reference_length': 224097, 'precision': 0.08122199464290383}, 'ROUGE': {'rouge1': 0.06688601209762574, 'rouge2': 0.014585223028157228, 'rougeL': 0.053947178475353, 'rougeLsum': 0.05371471183373541}, 'METEOR': {'meteor': 0.04663441308120877}}, 'ratings': {}}
+
+Results: {'reviews': {'n_examples': 2000, 'BERTScore': {'precision': 0.8433375608325004, 'recall': 0.8081935951411724, 'f1': 0.8248447189331055, 'hashcode': 'roberta-large_L17_no-idf_version=0.3.11(hug_trans=4.30.2)'}, 'BLEU': {'bleu': 6.836924099346053e-05, 'precisions': [0.25809838495506904, 0.04538722311819109, 0.013969452548481209, 0.008312404937922253], 'brevity_penalty': 0.002001955935336658, 'length_ratio': 0.13862644959952738, 'translation_length': 32383, 'reference_length': 233599, 'precision': 0.08144186638991589}, 'ROUGE': {'rouge1': 0.06642607905731221, 'rouge2': 0.014390716453529778, 'rougeL': 0.053586786472377544, 'rougeLsum': 0.05354680970066415}, 'METEOR': {'meteor': 0.04647829123804}}, 'ratings': {}}

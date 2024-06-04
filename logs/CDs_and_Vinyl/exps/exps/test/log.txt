@@ -1,0 +1,12 @@
+Task: Rating prediction
+Dataset: CDs_and_Vinyl
+Device: cuda
+
+Data:
+                              user_id     item_id  rating  user_vocab_id  item_vocab_id
+4249431  AFS3CK42CMYY2RHQCHZ6REKF43YA  B000060NUF     4.0              1              1
+3899283  AEL3P2ILS3W4GXFXYNP7TQVF3O2A  B000002LIM     5.0              2              2
+1598076  AFSPRPIKS2ACAL5C7IAFIEV3BPDA  B01LD657P2     5.0              3              3
+1929802  AFTOU2UFZPVVLUTW5BDGODV4TCLQ  B001CVCB94     4.0              4              4
+3753956  AGH7U2Y5CMGPVEKPB3ENNLP75Z7A  B00BZW5W3W     5.0              5              5
+
