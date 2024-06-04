@@ -1,0 +1,398 @@
+Model: google/flan-t5-base
+Tokenizer: google/flan-t5-base
+Task: Rating prediction
+Dataset: All_Beauty
+Approach: Prompting - 0 shot - 4 reviews 
+Sampling method: 2
+Device: cuda
+
+Data:
+                        user_id     item_id  rating                                             review      timestamp
+0  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B00YQ6X8EO     5.0  This spray is really nice. It smells really go...  1588687728923
+1  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B081TJ8YS3     4.0  This product does what I need it to do, I just...  1588615855070
+
+Input-Output example:
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+PARWIN Infrared Flat Iron 1 1/4 Inch Digital Hair Straightener Iron with Ceramic Tourmaline Plate Temperature Control Hair Iron Christmas Gift Black | [[VIDEOID:e487d57bdd82c5405085efb372c8fecd]]<br />This straightener is a nice metallic black and comes with a thin storage sleeve. There is a tiny instruction pamphlet included.<br /><br />The flat iron feels good in my hands. I like that the cord swivels at the base so that it does not tangle.<br /><br />This did an okay job on my hair. I have fine medium length hair and this mostly relaxed my curls so that my hair was more wavy that fully flat. I set the temperature to 300 for fine hair. I also tried 350.<br /><br />There are several things that make this iron just okay for me. First, it is weird to have the temperature controls between the flat iron blades. There is a constant temperature key and also temperature plus ... | 3.0
+2 Pack Detangling Brush for Curly Hair, Wiisdatek Black Hair Detangler, Afro Textured 3a to 4c Kinky Wavy, Detangle Easily Wet/Dry/Long Hair for Beautiful Shiny Curls (Pink, Green) | These brushes are actually like eight combs strung together. I had to set the extra piece that comes with each brush to separate the tines. It was not easy to get the bar across the "combs" but eventually I managed. There are only two places the bar should be put and that is where the holes are on the back of the "brush." I assembled these brushes on the lower holes. My biggest issue with these brushes is that there are only two holes to lock the bar in place when I prefer four holes like my Heeta detangling brush (product number B0836XT7J8 since the Amazon embedded links are not working).<br /><br />Once this is assembled, it glides through the hair and detangles. It works well on ... | 3.0
+Taya Beauty Inner Core Hair Strong Anti-Breakage Shampoo & Conditioner Duo - Strengthening and Repairing Formula - Free From Sulfates and Parabens - 8 fl oz Bottles | This comes as a set and no matter what I do, the shampoo bottle will not open. This absolutely infuriates me. I was able to open the conditioner. I removed plastic seal on the top of both bottles and turned as specified on the bottle. I spent 10 minutes trying to open the shampoo. Unless I take a hammer and chisel to it or an exacto knife, I can't use the shampoo.<br /><br />The conditioner is nice and has a subtle fresh aroma but without the pair, this is zero stars to me when I cannot get to the product. | 1.0
+Butt Naked Baby Organic Sunshine Lotion | Everyday Moisturizer | Lightweight, Non-Greasy | Normal-to-Dry Skin | Aloe, Shea Butter, Sunflower Oil, Calendula, White Tea, Green Tea, Rooibos Tea, Lemon Oil | 6.7 oz | Even though this is baby lotion, I got this for me. This moisturizer is lightweight, slightly creamy, absorbs rapidly, and leaves my skin moderately hydrated. Since it is lightweight, it is a perfect summer lotion. To my senses, it has a mild lemony fragrance even though that is not listed in the ingredients. This is made of all plant-based ingredients (see photo). The current price of $16 is competitive but pricey for this 6.7 ounce tube. | 4.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+This is a nice set of brushes. The brush is a soft pink synthetic fiber. The handles are a pinkish crystal handle. The brushes come in a clear plastic bag that closes to store your brushes. | 5.0
+Wow! These Crystal Handled Makeup Brushes are just Gorgeous! They are Flawless, and look SO good Up Close & In Person! They are Soft & Pickup & Apply product's Well! They would look Amazing on a Vanity and make a Beautiful addition to any Makeup Collection! Great Quality & Value! | 5.0
+
+The item description is DOYIZZ Makeup Brushes Set, 10pcs Crystal Handle Makeup Brushes Powder Blush Brush Foundation Brush Blending Eye shadow Concealer Makeup Brush Set (Pink). What is the user's rating of the item?
+
+Target: 5.0
+
+
+
+Examples:
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+PARWIN Infrared Flat Iron 1 1/4 Inch Digital Hair Straightener Iron with Ceramic Tourmaline Plate Temperature Control Hair Iron Christmas Gift Black | [[VIDEOID:e487d57bdd82c5405085efb372c8fecd]]<br />This straightener is a nice metallic black and comes with a thin storage sleeve. There is a tiny instruction pamphlet included.<br /><br />The flat iron feels good in my hands. I like that the cord swivels at the base so that it does not tangle.<br /><br />This did an okay job on my hair. I have fine medium length hair and this mostly relaxed my curls so that my hair was more wavy that fully flat. I set the temperature to 300 for fine hair. I also tried 350.<br /><br />There are several things that make this iron just okay for me. First, it is weird to have the temperature controls between the flat iron blades. There is a constant temperature key and also temperature plus ... | 3.0
+2 Pack Detangling Brush for Curly Hair, Wiisdatek Black Hair Detangler, Afro Textured 3a to 4c Kinky Wavy, Detangle Easily Wet/Dry/Long Hair for Beautiful Shiny Curls (Pink, Green) | These brushes are actually like eight combs strung together. I had to set the extra piece that comes with each brush to separate the tines. It was not easy to get the bar across the "combs" but eventually I managed. There are only two places the bar should be put and that is where the holes are on the back of the "brush." I assembled these brushes on the lower holes. My biggest issue with these brushes is that there are only two holes to lock the bar in place when I prefer four holes like my Heeta detangling brush (product number B0836XT7J8 since the Amazon embedded links are not working).<br /><br />Once this is assembled, it glides through the hair and detangles. It works well on ... | 3.0
+Taya Beauty Inner Core Hair Strong Anti-Breakage Shampoo & Conditioner Duo - Strengthening and Repairing Formula - Free From Sulfates and Parabens - 8 fl oz Bottles | This comes as a set and no matter what I do, the shampoo bottle will not open. This absolutely infuriates me. I was able to open the conditioner. I removed plastic seal on the top of both bottles and turned as specified on the bottle. I spent 10 minutes trying to open the shampoo. Unless I take a hammer and chisel to it or an exacto knife, I can't use the shampoo.<br /><br />The conditioner is nice and has a subtle fresh aroma but without the pair, this is zero stars to me when I cannot get to the product. | 1.0
+Butt Naked Baby Organic Sunshine Lotion | Everyday Moisturizer | Lightweight, Non-Greasy | Normal-to-Dry Skin | Aloe, Shea Butter, Sunflower Oil, Calendula, White Tea, Green Tea, Rooibos Tea, Lemon Oil | 6.7 oz | Even though this is baby lotion, I got this for me. This moisturizer is lightweight, slightly creamy, absorbs rapidly, and leaves my skin moderately hydrated. Since it is lightweight, it is a perfect summer lotion. To my senses, it has a mild lemony fragrance even though that is not listed in the ingredients. This is made of all plant-based ingredients (see photo). The current price of $16 is competitive but pricey for this 6.7 ounce tube. | 4.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+This is a nice set of brushes. The brush is a soft pink synthetic fiber. The handles are a pinkish crystal handle. The brushes come in a clear plastic bag that closes to store your brushes. | 5.0
+Wow! These Crystal Handled Makeup Brushes are just Gorgeous! They are Flawless, and look SO good Up Close & In Person! They are Soft & Pickup & Apply product's Well! They would look Amazing on a Vanity and make a Beautiful addition to any Makeup Collection! Great Quality & Value! | 5.0
+
+The item description is DOYIZZ Makeup Brushes Set, 10pcs Crystal Handle Makeup Brushes Powder Blush Brush Foundation Brush Blending Eye shadow Concealer Makeup Brush Set (Pink). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+[[VIDEOID:c99a2299e0c56e287829c35eaa7f9cd]] I was super upset because the shipping was so messed up and I only got 1 set but was charged for 2. After speaking to CS i got a refund. The bottom half are the 6/60/6 and the top is a different brand since i never got my 2and set. I do love them tho! Very soft and easy to manage! | 5.0
+
+The item description is YoungSee 24inch Wefts Sew in Human Hair Extensions Balayage Ombre Human Hair Weft Bundles Medium Brown Fading to Platinum Blonde with Brown 100G/Set. What is the user's rating of the item?
+
+Target: 1.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Eye Diamond Smooth and Firm Eye Cream: 100% All-Natural Anti-Aging Eye Serum – Get Rid of Wrinkles – Eye Cream for Dark Circles and Puffiness, Crows Feet and Fine Lines – 100% Guarantee | I love this product. I just turned 42 and started noticing some more changes in my skin texture and pore size. I've had this product for about 2 weeks and noticed a positive change in the appearance of my skin around my eyes within a week. I didn't experience any burning or stinging. I use two times/day. My skin is sensitive and I find that some products don't work the same for me as others. However, this product to works great for me. I love it! My skin looks like it did five years ago. I am going to stick with this brand for a while. I purchased it discounted to test and review | 5.0
+Pure Hyaluronic Acid Serum with Vitamin C for Face - Organic Anti Aging & Anti-Wrinkle Skin Treatment - Penetrates Deeply & Activates Collagen Production for a Younger, Firmer & Brighter Complexion | Hyaluronic acid is awesome for your skin. If you don't believe me, then literally look it up. WebMD will state that it helps with joint disorders, eye surgeries, and healing wounds/burns and more.<br /><br />The big statement here really is that it's very effective for any sort of regenerative properties. The serum is a very good moisturizer, and don't let the word &#34;acid&#34; turn you off of it. It's actually found in high quantities in the skin of a baby, which everyone knows is incredibly soft.<br /><br />This product, applied to your face, will protect it from UV damage, improve elasticity, make your face feel softer, and properly moisturize it.<br /><br />I have ben using products by Derma- nu for a while and this is my second ... | 5.0
+reBROW - Best Eyebrow Thickener - Eyebrow Enhancing Serum & Conditioner For Longer, Thicker & Fuller Brows. Made in Los Angeles, CA With Advanced Peptide Molecule Technology. | My mother's eye brows are thinning and this thickener was a magic!! She has naturally thin eyebrows and hasn't gotten into the whole eyebrow makeup trends, but she always wanted fuller brows for a while. She put this on her brows at night after cleansing and she could tell the difference after day 3. She has been using it for about two weeks now and her brows are fuller than ever!It looks like it will last a while, also. It's worth it for brows, unsure about lashes because she has naturally full, long lashes.I was provided this product at a reduced price to complete and post a factual review without compensation. Positive reviews are earned only through positive product attributes and performance. | 5.0
+Anti Aging Skin Care Serum for Men & Women From Uptown Cosmeceuticals Offers Spin Trap® Intelligent Antioxidant, Advanced Scientific Formula Promotes Younger Looking Face, 30mL | Since I received this serum with a great discount I shared this skin care product with my friend , so she could provide her opinion.<br />She used it for several day and that's what she found out:<br />1. Nice, presentable packaging and good design.<br />2. Very pleasant scent (citrus and spring flowers kind) very fresh<br />3. Hypoallergenic (she has EXTREMELY sensitive skin)<br />4. Her husband tried it and stated that is helped him with pores<br /> I could add to that that the package arrived very fast and even the full price with the discount is acceptable compare to other serums from the mall. | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+complete set 4 diffrent kind of nail cutter and small scissor and alot more worth the money i will recommend this to my friend plus the pouch was nice i love the design!!!!ill give this 4 star | 4.0
+Everything works great! Also like that everything fits perfectly in the pouch. It isn't too big and doesn't take up too much room. | 5.0
+We bought this as a travel kit and it is used all of the time! | 5.0
+Great set, lots of tools! All items are very sharp. Comes in a handy storage purse. | 5.0
+
+The item description is Manicure Pedicure Set Nail Clippers - 12 Piece Stainless Steel Manicure Kit - tools for nail, Cutter Kits Includes Cuticle Remover with Portable Travel Case. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+There are a couple complaints about the case, but it's actually one of the better features of this kit, attractive, nicely padded, secure, with a place for everything, though it's a test of dexterity to get some of the tools out of their place. Just keep everything where it belongs and it closes easily with a snap.<br /><br />The tools are mostly fine. They're adequately sturdy. The scissors are a little thin and flexible for tough cuts, but they're supposed to be for trimming facial hair, for which they're fine.<br /><br />The fit and finish of a few of the tools isn't the best. A couple of the nail clippers have a little overbite, where one blade doesn't perfectly align with the other, which can make for ... | 4.0
+
+The item description is Nail Clipper Set, GIDIBII Luxury 18 in 1 Stainless Steel Nail Clipper Kit, Manicure Pedicure Care Tools with Portable Travel Case. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Tinted Moisturizer Cream, SPF 15 - Best for Light, Fair & Sensitive Skin - With Vitamins B, C & E - 100% Natural - Gives Even, Healthy Glow, Tone to Face & Neck Daily - Use Day & Night to Curb Aging | So glad to have gotten such a great deal! Get some color and moisturize, who can ask for more | 5.0
+Best Eye Cream for Wrinkles - Resveratrol + Shea Butter + Aloe Vera Juice + Jojoba Oil - Must Have Day/Night Cream for Under Eyes - Reduces Crow's Feet. Fine Lines & Sagging Skin | Really feels like it's tightening the skin around my eyes and reducing wrinkles | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+
+
+The item description is Dynarex Cotton Tipped Applicators 6 inch 1000 ea (Pack of 2). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Bouquet Garni Body Shower White Musk - Unique Fragrance Decanting Engineering Method gives Long Lasting Rich Fragrance - Gentle and Mild Cleansing Scented Body Wash with Natural Surfactant 17.85 Fl Oz | This product is White Musk body shower gel. It is awesome. The scent is wonderful. It lathers and makes you feel clean. I love this wonderful, perfect product.<br /><br />The scent is sweet and so good and I love the scent so much. | 5.0
+Nice 'n Easy Permanent Color 9G Light Golden Blonde 1 ea (Pack of 3) | Nice n Easy Natural Light Golden Blonde. By Clairol. I love this product. Clairol is a trusted brand that I use very often. This is a good product that I have always gotten good, positive results from.<br /><br />I highly recommend this product if you use hair coloring. Unfortunately, I have to dye my hair. So I am always in need of some type of hair coloring. I love and trust this product. | 5.0
+Glow Line Individual Hand Wipes - Hand Wipes Travel Size, Lavender Rose Travel Hand Wipes - Moist Towelettes Individually Wrapped, Wet Wipes Individually Wrapped w/Murumuru Seed & Peptides - 15 ct | These hand wipes are great. They have great thickness and texture. They work great. | 5.0
+Bath & Body Works Sun-ripened Raspberry | Sun-ripened raspberries actually has a scent that smells like the fresh, dry, clean sunshine! The tangy raspberries mixed with the dry and fresh sunshine is one awesome, heavenly, clean scent.<br /><br />This product has a very unique raspberry scent because it is mixed with the dry, crisp sunny smell. It kind of reminds me of fresh laundry in the sun with raspberries.<br /><br />After cleansing with sun-ripened raspberry shower gel, the scent is strong and lingers. It is not absolutely necessary to douse with sun-ripened raspberry lotion, even though I prefer to have the lotion in addition to the already deep and strong lingering effects of the shower gel.<br /><br />The body splash is something I like to have later, after the majority of the shower gel ... | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+I got this as a stocking stuffer for my daughter, I will update the review once she uses it if we see any irritation or issues with it. She loves these mask so I'm always trying to find some different ones we haven't tried before. | 5.0
+
+The item description is Soo'AE Sweet Pink Bubble Mask, Clarifying & Softening, 1 Count. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+12 Classic Color Elegant Blush Set | This is good quality makeup... My only dislike of the palettes is that there are more orange and peach like colors.. If you like them... Then this would be a good palette for you.. I really like more pinky colors but it is a good palette. | 3.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+Terrible. I buy press on nails all the time. Some are perfect and some are terrible. These onces are TERRIBLE!!! Four nails fell off the same day I put them on!! 👎👎👎 | 1.0
+All Impressed pre-sticky nails are great. Make them greater, and much longer-lasting, by using Nailene nail tabs on nail first, then apply Impressed nails. You get double-sticky adherence this way! | 5.0
+Product as described. Highly recommend! | 5.0
+
+The item description is NEW 2015 KISS imPRESS "BIG FLIRT" Short Length by Broadway Press-On Manicure Nails. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+Easily wiped off, if you want it to last longer using a makeup setting spray. One of the pallets came broken on the side and they were really oily. But they did stand out in color well, if using multiple colors be patient and let dry so you don't run colors. | 3.0
+See it didn’t come on easily. It smudges easily. If you are going to sweat AT ALL you can’t use it. Don’t buy. Waste of money and pigment is horrible sorry. | 1.0
+These are great for parties. It has a lot of colors. It is very nice to give a cute look. They went on well. It wasn't too difficult to apply. They looked good. The kids really enjoyed them. They would be good for a party or Halloween. They were lots of fun. I would recommend them. | 5.0
+Super fun kit for arts and crafts at home! Wish it was a bit easier to remove from the eye area | 4.0
+
+The item description is Face and Body Paint Kit By Color Technik 24 Professional Oil Based Flash Colors, 2 Sets of 12 Color Palettes, 6 Paint Brushes 70 Stencils 2 Sponges Non-Toxic For Adults & Kids Halloween Painting Party. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+There was no latch hook to do my hair with as was advertised as the free gift. Very disappointed to have received a “scrunchy.” | 3.0
+Thin, shine and the loop is so easy to crochet with | 5.0
+
+The item description is 6 Packs 18inch Striaght Goddess Locs With Curly Ends Faux Locs Crochet Twist Hair Soft Synthetic Braiding Hair Extension Wavy Faux Locs Twist Hair (18inch, T1b-99J). What is the user's rating of the item?
+
+Target: 1.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+WIS Hyaluronic Acid Moisturizing Facial Mask for Women Anti-aging, Deep Hydrating, Remove Wrinkles, 24 Pack Sheet Mask for Dry and Sensitive Skin Care | These are wonderful. I used one just today. They are so moisturizing and creamy feeling. My face feels plump and nourished! It’s such a revitalized feeling! I would highly recommend! | 5.0
+NEW Challenger Men's Rinse Free Hand Wash - 1oz - Portable, 30% Alcohol Hand Wash both Cleans & Moisturizes. Hydrates Hands, Forearms, & Skin - Cleansing 30% Alc. Based Formula Washes and Nourishes | I love this stuff. It’s great during pandemic and I prefer it over the gel or wipes. | 4.0
+OGANA CELL Bio Actiome Recovery Cream 50ml / 1.69oz - Mild All in One Cream, Soothing & Anti-Wrinkle, Peptides and Blackbee Extract Contained Nourishing Skin Care | I haven’t had this too long but just the week I’ve tried it I’ve noticed a difference. I have combination skin, closer to oily. Lately I’ve needed a little more moisture. This is just right. It feels like it would be great for dry skin and oily. Maybe a little too much for oily, idk. It’s not too thick. At first, when applying it, it seems thick. But it quickly absorbs. Right away actually. It doesn’t have a strong scent. My skin feels great the next day when I wake up. I usually apply it twice a day and it’s not too oily. As I learned in cosmetology school, there’s a difference in oil and moisture. This moisturizes without being oily. | 5.0
+MOSTORY Glitter Crystal Liquid Eyeshadow Set - 4 Pack Pigmented Liquid Eye shadows Matte Shimmer Metallic Quick Dry Crease Resistant Long Lasting Flake-Proof Blendable Non-Greasy Eye Makeup (4 Pack) | I was skeptical a little at first of this. I’ve tried another brand of white before and it was like water. Also, I’m not good at applying liquid eyeshadow. But let me tell you, I applied this with the applicator. It’s a sponge tip like will come in lipstick or lip gloss. Then I sort of blended it in just a little with my finger. It dries on and stays the whole work night 12 hours. It’s great. It feels a little like when something liquid would dry on skin but not bad and doesn’t show wrinkles. It may be for younger people but this 50 year old loves it. You wouldn’t believe the head turns and compliments I receive. People asked what it’s called and where ... | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+Beautiful lashes and great magnetic eyeliner. The eyeliner is totally waterproof and lasts all day without problems. Doesn't irritate my sensitive eyes and these lashes are lightweight and totally beautiful. I have worn them a few different times and they still look beautiful. I am able to clean them gently in makeup remover and then let them dry and I can wear the lashes over and over again. | 5.0
+They don’t stay on. A waste of my money. | 1.0
+Works well, I’m new to lashes so it made it very easy! | 5.0
+Wish i had these lashes years ago! Really easy application, I recommend testing on your wrist (or somewhere else) to make sure you wont react before using :) | 5.0
+
+The item description is Magnetic Eyelashes with Eyeliner, Invisible Magnetic Mink Magnetic Lashes Kits with 2 Liquid Eyeliner 6 Reusable Waterproof False Eyelashes, Eyelash Tweezers, Best Magnetic Eyeliner for Daily, Party. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Senvenski Gel Nail Polish Red Rose Burgundy Purple Mauve Lavender Violets Lilac White Black Glitter Starrily Girlfriend Gift Soak Off UV LED Manicure Art Varnish Set DIY at Home 6 Colors (CS6-015) | I just started using gel nail polish and love the look. These colors are very vibrant. It actually takes 3-4 coats to get the desired color look that I want but I love it. It was easy to take off than I expected since it has to go under the UV light when applying. I've even used this on my toes!! | 5.0
+9 Pack Headbands Set -Messen Fashion Velvet Wide Hairband with Pearl Knitted Floral Fabric Cute Elegant Vintage Cross Knot Turban Elastic Hair Hoop Headwrap for Women Girls Hair Accessories | I love these hairbands! The variety of the hairbands and the comfort are what I like most about these. My granddaughters also use these, especially the younger ones. The one with the pearls is all of our favorite. I've had other headbands that squeeze the sides of my head but these fit comfortably and didn't leave marks after wearing all day. | 5.0
+Crochet Braid Crochet Hair Afro Kinky Curl Color Crochet Synthetic Hair Spring Twist Crochet Braiding Hair #4 Color 4 Pack(8inch 4#) | I absolutely love these braids!! These were the first crochet braids I've every had. There were easy for my niece to put in my hair. The amount of packs that came in the package was more than enough to cover my whole head. The length of the braids were perfect. They are very soft and bouncy. Great product!! | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+These were really cute but not soft like other twists I’ve had before. | 4.0
+
+The item description is Mtmei hair 5Packs 10" Pre-twisted Spring Twist Hair Crochet Braids 15 Strands/Pack Nubian Bomb Twist Crochet Hair Messy Fluffy Spring Twist Crochet Hair Extensions(1B). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+HBY8482; 50 Pics Solid Stretch Pony Elastics Ponytail Holders | These are super Stretchy and made of great qualitY!!! i like that its perfect for my thick hair and this elastics are thin... they are not thick... BUT HOLDS a lot og hair!!! i highly recommend this and YES I ABSOLUTELY LOVE IT!!!<br />Thank you so much HBY for giving me to try your product , its amazing 1!!! I received those at discounted price | 5.0
+ERBA Hair Essence 4.05 fl.oz/120ml Protein Vitamin Minerals from Cereals - Cream Essence - Luxury Aluminum Containers | This is a great nutritional supplement ERBA contains Protein, Vitamin and Minerals ingredients derived from Cereals for your damaged or dry hair.<br />All you need to do is After shampoo, apply appropriate amount evenly to damp or dry hair on damaged areas.... massage thru and let it air dry or with hairdryer. The hair feels so soft and very smooth. I love it. After using it for couple of weeks i see the change in my hair, the split end or dry hair after bleaching almost gone :) so excited !!! i really wanna see the results in like a month of use!!! HIGHLY RECOMMEND!!! THE SMELL OF IT IS HEAVENLY!!! i received this item at discounted price for my honest review. | 5.0
+Vitamin C Antioxidant Lotion by Eva Naturals - 1.7 oz - Best Antioxidant Body, Anti Wrinkle Lotion for Free Radical Damage Prevention - Vitamin C Benefits Collagen, Wrinkle & Fine Line Prevention | ITS NOT BAD AT ALL.... ITS A NICE MOISTURIZING CREAM BY EVA NATURALS<br />IT IS EFFECTIVE AND GENTLE AND SOFT... IT IS GREAT FOR PEOPLE WHOEVER HAD SENSITIVE SKIN OR DRY SKIN (LIKE I DO)<br />IT HELPS TO SMOOTH AND MOISTURE IT!!!<br />IT GOT THIS SPECIFIC SMELL IN IT... ITS OK BUT NOT MY FAVORITE THO...<br />The combination of Vitamin C and other natural antioxidants helps heal damaged skin and create a healthy, youthful and radiant complexion.<br />AFTER APPLYING SEVERAL TYPES TO MY DRY SKIN /PATCHES IVE NOTICE THAT ITS ALOMST GONE!! THE SKIN LOOKS MORE YOUNG AND SMOOTH. I LIKE THAT EVA NATURALS GOT ALL NATURAL INGREDIENTS IN IT.<br />I RECEIVED THIS PRODUCT AT DISCOUNTED PRICE FOR MY HONEST REVIEW. | 4.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+great product great price except i wish not so much oil came out with each pump | 4.0
+I received a discount code voucher in order to purchase this fractionated coconut oil for review, giving it my honest opinion. I was so bummed to find out that this had no scent. I was looking forward to wearing the coconut scent. I tried it on my hair to get rid of the frizzies. It will take some time getting used to the pump. The oil is so thin that it came out way too fast and spilled out of my cupped hand and all over the floor. I put it in my hair and it is very greasy. I feel like I am using baby oil. It doesn't leave my hands greasy, so that is a plus. It makes for a great lotion of sorts, there ... | 3.0
+Great buy<br />I bought this as a carrier oil for my Essential Oils. I used it right away. I added this to a roll on bottle with 2 drops of a headache blend. It worked great. The oil rolls off smoothly onto the skin. It leaves no residue behind. Takes about a minute to be gone form the skin. I was worried I would leave behind oil prints.<br />We also use this as the base of our homemade shampoo and massage creams. It is a natural way to moisturize your skin and hair. The pump spout makes it so easy to fill the other containers.<br />We love that it is 100% pure, natural, odorless ( did not want to smell like coconut) and colorless, and has no ... | 5.0
+This works great to use in a diffuser or warmer and add any fragrance oil you like. | 5.0
+
+The item description is Sky Organics Fractionated Coconut Oil for Body & Face, 100% Pure to Condition, Soften & Smooth, 16 fl. Oz. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: Essential Oils.
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+GOMAY Hydrating Amino Acid Foaming Facial Cleanser, Daily Face Wash for Makeup Remover with Face Cleansing Brush | The cleanser feels luxurious and decadent. Most cleansers leave my face feeling dry and tight but not this one! My skin feels fresh and moisturized after use.<br /><br />Having mature skin(over 50), I find most cleansers are drying but this product truly outshines others I’ve tried. I have sensitive skin and have experienced no problems whatsoever. The brush is a little stiff but I like it. You can opt to not use the brush if you prefer. Overall I am Very Pleased with this product and def recommend it. I hope this review helps! | 5.0
+AJOKE Makeup Sponge Wedges,Latex Free Foam Beauty Sponge,for all kinds of cosmetics（20-count） | These sponges are a great addition to my makeup routine. The Texture is Smooth and Blends my Foundation well. I love the size too! They are smaller than my usual ones and are Perfect to get my Under Eye Concealer blended Evenly.<br /><br />The jar is cute and looks Great on my counter. I’m Happy I gave them a try! I hope this review helps you. | 4.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+These are super tight and strong! Great for thick hair. Highly recommend. | 5.0
+These hair clips were gifted away to my friends. As per my friends, these work very well and look really beautiful. The clip helps to keep hairs in place. Everyone appreciated of these clips. They said, it is a buy worthy product and recommended for others! | 4.0
+Both my girls have longer hair and like to get it off their neck during the hot summer months. My girls have been using these clips for a week and so far, so good. There are 8 hair clips in this package so they each took 4 clips. There are 2 styles. One style is curved teeth clips while the other is more a rectangle with teeth. The girls have tried both styles and they say both work well. Only time will tell us if these clips will last but at under $10 for 8 clips who cares. Both girls are happy with the style, colors and cost. | 5.0
+Strong hold. Open wide and finishing is good on these. | 5.0
+
+The item description is Big Hair Claw Clips for Women and Girls - 4.3 Inch 8 Pcs Matte Claw Hair Clips for Thick Hair, Large Jaw Clips for Thin Hair, 2 Styles Strong Hold Hair Accessories for Girls. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+lilah b. - Bronzed Beauty Bronzer Duo - b. sunkissed - Multipurpose Bronzer Duo to Highlight + Contour and Blend | Let me start off by saying I am fair skinned so it's hard to find a bronzer that doesn't look so harsh with my complexion. This was offered to me to try in return for an honest review. So, upon first getting this - it was relatively heavy for just a bronzer/highlight. When I got the duo out, I realized why. The packaging that the actual bronzer/highlight is in is made of some heavy glass like material. It's packaged really pretty though. There's not a lot of product that comes in the container. But, you get a beautiful golden bronzer and a peachy highlight. The bronzer actually looks very natural on my fair skin. It's not harsh or orange. It looks like a natural shadow on my ... | 4.0
+Sam&Helen Magnetic Eyelashes With Eyeliner Kit, 5Pairs Magnetic Eyelashes And 2 Tubes Magnetic Eyeliners With Eyelash Applicator-No Glue Needed | This is my third set of magnetic lashes and liner (I'm obsessed and will never go back to the glue). You get 5 different kinds of lashes in this set (I personally like the third set the best). Two liners and a tool to help apply the lashes but I don't use it - it's easier to not. However, I do press my real lashes to the fake to make it more inconspicuous. My problem with this set is the liner. For one, its VERY tacky. Even after it dries. My lower lid kept sticking to my upper eyelid any time I'd blink. Secondly, the liner is watery looking when applied. Like it's transparent almost and takes a few coats to get a solid line. Even with ... | 3.0
+Color Me Cosmetics Gel Manicure Kit with LED Lamp - DIY Gel Nail Starter Set with Prep, Base and Top Coat, 2 Gel Polish Colors & Nail Tools - Beginner Nail Kit with Everything You Need Made in USA* | I got this gel nail set on a whim. I wasn’t really expecting much from it or for it to work well. I was super skeptical as I was doing my sisters nails. She has much more elegant hands and long nails so hence why she was my model for trying this gel kit. The instructions are clear and explain what is used for what and how to use them in the proper steps. The instructions also come with tips which were helpful. You get a UV light, a buffer and pads, topcoat, peel off base coat, two colors, prep it and end it solution. The UV light is a plug in and not battery operated. It is a bit of a time-consuming process – it took ... | 5.0
+YoungSee 20inch Tape in Hair Extensions Remy Human Hair Balayage Ombre Darkest Brown to Medium Brown with Ash Blonde Straight Tape Hair Extensions 20pcs/50g | These are my first ever time trying extensions. The color is pretty accurate to my own hair. They are very soft as they should be since they’re real human hair. I got the 20 pc. I wasn’t sure that would be enough for me as I have medium thickness hair that’s a couple inches past my shoulders. I definitely need at least 2 more packs to fill in the rest of my hair. If you have thinner hair, you may get away with needing less. These haven’t shed too much either. I’ve not yet applied heat to them so I can’t attest to how well they’ll hold a curl. I’ll order a few more packs to fill in the rest of my hair and then try to ... | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+I love the fabric and how soft it is . It is nice to take off the makeup I love it | 5.0
+I LOVE makeup removing cloths. I don't use them solo — only with a makeup remover or micellar water. But these things are great because they're gentle on your skin and are far more economical and environmentally friendly than using disposable wipes. | 5.0
+Oh. My. Gosh. I took off a full beat with waterproof makeup off in like 2 minutes. 2 swipes over each eye with just water and and everything else just came right off the first try. 10/10 would recommend :) | 5.0
+
+The item description is NATWAG Reusable Update Makeup Remover Cloths for Sensitive Skin - Microfiber Face Cloth Makeup Remover | Washable Round Makeup Remover Pads | Natural Facial Towels (2 Pads,2 Cloth) (Purple). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+KATAIMUZI shaver electric Trimmer Grooming Kit Men's Electric Razor Facial Cleaning Brush Beard Trimmer | Here is a product that you charge via USB, and have enough power to shave your legs if you want. I don't have the best eyesight and when I use a razor, I often miss areas. I used this today and I had a good amount of cleaning to do on the head and brushing out the hairs. This is the most hairs I have ever been able to remove with an electric or chargeable razor. You can also wash your face with the scrubber and trim your sideburns and more. This is also waterproof. The instructions are all in Chinese, but you can see from the pictures what to do and how to lift the rotaries to brush the hairs out. | 4.0
+Fountain of Truth Magic Wand Sculpting Eye Roller – Anti-Aging Eye Cream in a Skin Massager Tool –Wrinkle, Dark Circle & Puffiness Treatment – Clean, Natural & Efficacious Beauty & Skin Care Products | But once it did prime, it let enough out to work on my eyes this morning. It felt cool thanks to metal eye roller. My eyes looked better and felt moisturized for hours. | 5.0
+Simply Dana Cellular De-Stressing Cream, Boost Skin's Natural Immunity - 1 oz (30g) | and am leaving it on overnight. With the other product I am wearing overnight, my face feels so dewy and so soft. I like it. | 5.0
+[FORENCOS] Eyebrow Tattoo Precision Pen- Microblading Eyebrow Pencil with a Micro-Fork Tip Applicator Creates Natural Looking Brows,Waterproof Ink Brow Gel Tint, All Day Proof (03 Ash Brown) | I was able to get my eyebrows filled in and looking great in just seconds. One eyebrow had a little oops but I used a paper towel and my nail to smooth out the area and it looks great. I could use a lighter shade but this looks fine. | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+I have combination/oily skin. This moisturizer is lightweight and sinks in fast. It leaves my skin feeling balanced and hydrated | 4.0
+I’ve been using this moisturizer for a while now. It’s my third time purchasing the product. I love how light weight it is and the glow I instantly get. | 5.0
+Awesome product non greasy just adds this natural glow! Love it!! | 5.0
+Love this moisturizer! Has been one of my go tos for a few years and happy to have found it on Amazon! Great price too | 5.0
+
+The item description is Easydew EX Repair Control Renewal Moisture 1.70 fl.oz. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Revitalizing N.M.F Intensive Hydrating Serum that treats Dull, Tired, Dry and Sensitive Skin from Manilla Natural Skincare | I just love the scent of this serum! Others are saying they smell vanilla but for some reason it smells like honey to me and I just love the scent. I am trying to phase out skin care that have added smells but I just could not resist this one! After applying the serum to my face and spreading it all over, it just seeps into my skin and moisturizes. It did not feel sticky or tacky at all. I really enjoyed using this serum at night before bed and letting it work its magic. Now that we are in colder weather my skin needs a thicker face cream like oils/serum so this is just perfect. I plan to use this every night because the scent just ... | 5.0
+Bouquet Garni Body Shower White Musk - Unique Fragrance Decanting Engineering Method gives Long Lasting Rich Fragrance - Gentle and Mild Cleansing Scented Body Wash with Natural Surfactant 17.85 Fl Oz | I know scents are a personal thing and can be a hit or miss for most people. I didn’t mind the vanilla musk scent at all and thought it was pleasant. This is a good sized bottle and should last quite a while. For anyone who does not want to use this as a shower gel you can always use it as hand soap or as a refill for your hand soap. I already have plenty of shower gels I need to use up in my own shower so I am putting this in our guest bathroom, especially since the bottle has a nice floral design. My only complaint is this is a Korean product but they should have also included a list of ingredients in English ... | 4.0
+[Abib] Facial soap brick (BLUE) | This soap did a nice job of cleansing my face. The facial soap is a little more cost effective compared to getting a tube of face wash. It lathers just enough for me to wash my face. My face felt clean afterwards and did not feel super dry. I followed it up with a face moisturizer soon after. If you don’t want to use it on your face you can always use it as a body soap.<br /><br />I did not particularly like the scent of the blue one. I can’t put my finger on what it smells like. One thing that had me worried is the soap says “exp: May 24, 2021”, so I’m a little confused as to why the soap has such a short ... | 3.0
+Laloirelle Deep Hydration Face Oil - Nourishing Helichrysum Oil, Avocado Oil Infused With Red Ginseng, Shitake Mushroom, Elderflower - Unparalleled For Moisturizing Very Dry, Dull or Aging Skin - 1.0 fl oz | I love face oils and never worry about them being too oily because I only use them at night before bed - that way they have time to seep into the skin and work while I sleep. I just love the smell of this one - especially when the smells are from oils / essential oils, and nothing synthetic. This bottle is just chock full of good stuff, good ingredients, and herbs and things. As we get into the winter season this will be perfect to keep my skin moisturized so at the moment I am using it sparingly. After trying this face oil I am excited to explore other products from Laloirelle because their formulation and ingredients used are exactly the type of stuff I love ... | 5.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+Product was light and sheer | 4.0
+I felt it was a little thick to the touch and the lack of any smell almost made it smell | 3.0
+This is a 3 piece mini set that includes Universal C Skin Refiner, Universal Pro Bio Moisture Boost Cream, Universal Moisture Essence. When you use these products, you will have moisturized skin all day long and you will reap the benefits of rejuvenated, nourished skin. | 5.0
+I bought the trio and there was one pump in one product completely empty. Appears the packaging is what I paid for! Unfortunately, I can rub a bottle on my face. Terrible marketing. | 1.0
+
+The item description is BeautyStat Mini Universal Essentials Skin Care Kit - 3 in 1: Universal C Skin Refiner + Universal Pro Bio Moisture Boost Cream + Universal Moisture Essence | Created by a Veteran Cosmetic Chemist. What is the user's rating of the item?
+
+Target: 2.0
+
+Output: 1.0
+
+================================================================================
+
+
+
+160 samples:
+{'reviews': {}, 'ratings': {'n_examples': 176, 'n_non_numerical': 11, 'rmse': 1.9694638556693238, 'mae': 1.2121212121212122, 'precision': 0.696969696969697, 'recall': 0.7753623188405797, 'f1': 0.8106060606060606, 'auc': 0.5358293075684379, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+320 samples:
+{'reviews': {}, 'ratings': {'n_examples': 336, 'n_non_numerical': 27, 'rmse': 1.8534495085936786, 'mae': 1.1197411003236246, 'precision': 0.7216828478964401, 'recall': 0.8266129032258065, 'f1': 0.8266129032258065, 'auc': 0.5608474352194606, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+480 samples:
+{'reviews': {}, 'ratings': {'n_examples': 496, 'n_non_numerical': 40, 'rmse': 1.8794537746984017, 'mae': 1.1480263157894737, 'precision': 0.7127192982456141, 'recall': 0.8086253369272237, 'f1': 0.8207934336525308, 'auc': 0.5513714919930236, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+640 samples:
+{'reviews': {}, 'ratings': {'n_examples': 656, 'n_non_numerical': 47, 'rmse': 1.8813316738403874, 'mae': 1.1477832512315271, 'precision': 0.7192118226600985, 'recall': 0.8035714285714286, 'f1': 0.8256880733944955, 'auc': 0.5589285714285714, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+800 samples:
+{'reviews': {}, 'ratings': {'n_examples': 816, 'n_non_numerical': 56, 'rmse': 1.932580767019229, 'mae': 1.2052631578947368, 'precision': 0.7039473684210527, 'recall': 0.7882165605095541, 'f1': 0.8148148148148149, 'auc': 0.5456234317699286, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+960 samples:
+{'reviews': {}, 'ratings': {'n_examples': 976, 'n_non_numerical': 67, 'rmse': 1.9580304870810448, 'mae': 1.2299229922992299, 'precision': 0.6974697469746974, 'recall': 0.7789613848202397, 'f1': 0.8096885813148789, 'auc': 0.5445439835493604, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+1120 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1136, 'n_non_numerical': 75, 'rmse': 1.9582109205662885, 'mae': 1.236569274269557, 'precision': 0.6965127238454288, 'recall': 0.7765108323831242, 'f1': 0.8087885985748218, 'auc': 0.545864111843736, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+1280 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1296, 'n_non_numerical': 90, 'rmse': 1.9614865584732692, 'mae': 1.2396351575456053, 'precision': 0.6965174129353234, 'recall': 0.777, 'f1': 0.8093749999999998, 'auc': 0.5414126213592233, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+1440 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1456, 'n_non_numerical': 98, 'rmse': 1.9441767588143808, 'mae': 1.2253313696612667, 'precision': 0.7002945508100147, 'recall': 0.7832292595896521, 'f1': 0.8118354137771613, 'auc': 0.5456230686133914, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+1600 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1616, 'n_non_numerical': 105, 'rmse': 1.9412704021649434, 'mae': 1.2273328921244209, 'precision': 0.6982131039046989, 'recall': 0.7849636216653193, 'f1': 0.8098415346121768, 'auc': 0.5457664823655064, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+1760 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1776, 'n_non_numerical': 114, 'rmse': 1.931397117506245, 'mae': 1.21690734055355, 'precision': 0.7003610108303249, 'recall': 0.7863935625457206, 'f1': 0.8119335347432024, 'auc': 0.5440442388999789, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+1920 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1936, 'n_non_numerical': 131, 'rmse': 1.9283926106843048, 'mae': 1.2146814404432134, 'precision': 0.7024930747922438, 'recall': 0.7877358490566038, 'f1': 0.8132173913043478, 'auc': 0.5480735320049375, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}
+
+Results: {'reviews': {}, 'ratings': {'n_examples': 2000, 'n_non_numerical': 134, 'rmse': 1.9284147619495753, 'mae': 1.2130225080385852, 'precision': 0.7020364415862809, 'recall': 0.7879973907371167, 'f1': 0.8129205921938089, 'auc': 0.5471518485217115, 'non_numerical_examples': ['Essential Oils.', 'BB cream.', 'Review: 1.0', "review | rating (from 1.0 to 5.0): I like the feel of the brush and I agree with the description that it is good for styling and brushing out short and straight hair. Mine got a lot of static with this one. My hair is probably just too dry right now and I do prefer those that have a little more styling ability but this is good for when my scalp needs it. Fuller is a well know brush company - they specialize in all kinds of brushes, even clean brushes. I agree with others that this is a little too pricey but it's perfect.", 'DO NOT AND I MEAN DO NOT BUY!br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br />br /> I usually ignore some reviews because some people just don’t know hair but this IS NOT IT.br /> Bundles were extremely thin! Also not true to length at all. My 14 16 18 was more like a 10 12 14. AND the hair is extremely hard. Even after washing and conditioning. Absolutely ridiculous! Hair doesn’t take dye well AT', 'review | rating (from 1.0 to 5.0): I have tried a lot of different types and brands of soap and this one is a stand out for me. I love everything about it beginning with it’s scent. The scent for some reason gives me a warm fuzzy feeling and makes my morning showers feel just a bit nicer.br />br />I like the shape of the soap very much because it makes the bar easier to hang onto in the shower.br />br />The soap lathers very well', 'Review: 1.0', '[[VIDEOID:b06f63dba609cea38b299ba88f1d0231]]', 'Ultra Soft.']}}

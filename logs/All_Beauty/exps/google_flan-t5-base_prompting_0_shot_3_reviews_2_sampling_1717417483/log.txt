@@ -1,0 +1,304 @@
+Model: google/flan-t5-base
+Tokenizer: google/flan-t5-base
+Task: Rating prediction
+Dataset: All_Beauty
+Approach: Prompting - 0 shot - 3 reviews 
+Sampling method: 2
+Device: cuda
+
+Data:
+                        user_id     item_id  rating                                             review      timestamp
+0  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B00YQ6X8EO     5.0  This spray is really nice. It smells really go...  1588687728923
+1  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B081TJ8YS3     4.0  This product does what I need it to do, I just...  1588615855070
+
+Input-Output example:
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Mscoreray Hand Sanitizer Dispenser Touch Free Smart Sensor Hands Disinfectant Dispensers Office Kitchen Hospital Home 10oz/500ml | [[VIDEOID:d41df5bddef7c70a7fa3c241cc00a2d8]] So, I was so excited to review this item upon delivery but with the whole pandemic situation, my order of hand sanitizer was backed up. When my sanitizer came, it was loser than most hand sanitizers I'm use to but still a bit too thick for this dispenser. Find like liquid doctor office sanitizer for this or use plain ol' alcohol since it's actual liquid and hey it's pure sanitizer lol.<br /><br />I love that although liquid (do not use any kind of gel sanitizer) is BEST for this dispenser, it shoots out so sharp and strong that there is no leaking afterwards. You have to put in 4 AA batteries in order for it to work and barely tap the symbol on top to turn ... | 5.0
+Eyelashes Natural Look False Lashes - Bepholan Fake Eyelashes 5D Super Fluffy False Eyelashes Clear Band Wispy Lashes 3-Pack Faux Mink Lashes (XMZ010-3) | These are full and beautiful. I did not reuse because of the fighting with removing glue. | 4.0
+Jolia Hair Fashion Gorgeous Hairstyles Synthetic Short Curly Wavy Full Hair Wigs for Women Natural Look, Jet Black (D03) | I freaking love this wig!! The shedding is very minimal and it's just gorgeous. You do not need to do too much to it beside dip wash it when received, as you should ANY wig prior to using. Everyone loved this wig on my head and honestly I hate big hair but this was sexy. I got the D03 color/length. I am just a wig wearing beginning so I have been trying many wigs for fun and just new looks since I only wear my hair straight.<br /><br />My comment will not say verified purchase because I buy rushed products through a family member account since they have a prime membership. | 5.0
+
+The item description is Flotig New Goddess Faux Locs Crochet Braids 24 Inch 6 Packs Natural Black Pre-twisted Knotless Crochet Hair Synthetic Braiding Hair Extensions (24Inch, 1B). What is the user's rating of the item?
+
+Target: 5.0
+
+
+
+Examples:
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Mscoreray Hand Sanitizer Dispenser Touch Free Smart Sensor Hands Disinfectant Dispensers Office Kitchen Hospital Home 10oz/500ml | [[VIDEOID:d41df5bddef7c70a7fa3c241cc00a2d8]] So, I was so excited to review this item upon delivery but with the whole pandemic situation, my order of hand sanitizer was backed up. When my sanitizer came, it was loser than most hand sanitizers I'm use to but still a bit too thick for this dispenser. Find like liquid doctor office sanitizer for this or use plain ol' alcohol since it's actual liquid and hey it's pure sanitizer lol.<br /><br />I love that although liquid (do not use any kind of gel sanitizer) is BEST for this dispenser, it shoots out so sharp and strong that there is no leaking afterwards. You have to put in 4 AA batteries in order for it to work and barely tap the symbol on top to turn ... | 5.0
+Eyelashes Natural Look False Lashes - Bepholan Fake Eyelashes 5D Super Fluffy False Eyelashes Clear Band Wispy Lashes 3-Pack Faux Mink Lashes (XMZ010-3) | These are full and beautiful. I did not reuse because of the fighting with removing glue. | 4.0
+Jolia Hair Fashion Gorgeous Hairstyles Synthetic Short Curly Wavy Full Hair Wigs for Women Natural Look, Jet Black (D03) | I freaking love this wig!! The shedding is very minimal and it's just gorgeous. You do not need to do too much to it beside dip wash it when received, as you should ANY wig prior to using. Everyone loved this wig on my head and honestly I hate big hair but this was sexy. I got the D03 color/length. I am just a wig wearing beginning so I have been trying many wigs for fun and just new looks since I only wear my hair straight.<br /><br />My comment will not say verified purchase because I buy rushed products through a family member account since they have a prime membership. | 5.0
+
+The item description is Flotig New Goddess Faux Locs Crochet Braids 24 Inch 6 Packs Natural Black Pre-twisted Knotless Crochet Hair Synthetic Braiding Hair Extensions (24Inch, 1B). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+AORAEM Mini Nail Dust Collector Portable Suction Dust Collector Machine Handheld Table Dust Sweeper with Brush for Nail Drills Acrylic Nails (Light Grey) | Who likes cleaning up finger and toenail clippings? Now we don’t have too. Just bring this baby out with your manicure set and clippings are sucked away with ease! | 5.0
+
+The item description is Terre De Mars Resonance Facial Oil, Certified Organic, Plumping and Nourishing Oil for Men and Women, Infused With Coffee and Evening Primrose Oil to Protect and Illuminate Skin, Perfect for All Skin Types, Made in France, Vegan and Cruelty Free (1 FL Oz). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+L'ANGE HAIR Argan-Infused Round Brush | Lightweight & Ergonomic Design | 53MM Tourmaline Ceramic Barrel | I found this round brush to be of high quality and easy to use. I sometimes suffer from pain in my wrists due to typing often and found that this brush didn’t bother my wrists at all. I have never used an Argan infused brush and I did feel a difference between this brush and one without Argan: I did see that my hair felt smoother and less frizzy. The price point is on the higher end, but I felt the quality was definitely worth it. | 5.0
+[Upgrade] FUGACAL Hair Straightener Brush, 30s Fast Heating, 3 Temp Settings, Anti-Scald Design and 30mins Auto-Off, Bring You Ultra Straight Hair with Natural Shiny Look in Minutes | I am a habitual flat iron user and recently purchased a wet to dry heating tool/comb, but decided to take a chance on this straightening brush steamer: I must say: I am quite impressed with this apparatus. It took me a quick second to get in a groove of running it through my hair, but after a few times, it was pretty easy. The tension/pull is really good and I liked how it left my hair. My hair feels so smooth and I am pretty satisfied with how my hair turned out (after my first try)... | 5.0
+Dry Weightless Hair Volume and Texture Spray | Dry Texture Spray for Hair | Texturizing Spray | Sulfate and Cruelty Free 244ml (7oz) | I have been trying products that gives your hair the “textured” look. I have used regularly during the Summer months and I found that it did add volume to my hair. It also doubles as a dry shampoo., as it absorbs oils from your hair. Lastly, I felt that the aerosol sprayed out the product with a good amount of strength, which is a plus for me. | 5.0
+
+The item description is Hygieia + Encapsulated 2% Retinol Cream – Liposomal Anti-Wrinkle Cream for Face, Neck & Body – Fast & Deep Cellular Absorption – Day or Night Cream for Firming, Lifting & Repairing Aging Skin, 4oz. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Hairro Curly Ponytail Drawstring 18 Inch #12 Light Brown | It’s not great, but I also guess it’s not horrible. It tangles easily and the combs don’t really have a purpose and pokes you in the scalp. It’s extremely heavy, & definitely has a synthetic look to it. But maybe add some baby powder or dry shampoo to get rid of the shine? | 2.0
+
+The item description is Everyday Beauty Age-Defying Eye Cream to Minimize Dark Circles, Discoloration, and Puffiness, Anti-Aging Eye Cream with Squalene and Hyaluronic Acid, 0.5 oz. Jar. What is the user's rating of the item?
+
+Target: 1.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Natural Waterproof Lash Mascara Black, 4D Silk Fiber Eyelash Mascara Makeup, Lengthening and Thick, No Clumping, Smudge-proof, Long-Lasting Voluminous Eyelashes Dramatic Extension Makeup Kit Eye Lash | This is the best mascara I've ever tried!<br />I have sparse lashes and even with one coat of this mascara, they look dramatically thicker.<br />If I add another coat, I can hardly even believe these are MY eyelashes!<br />With other brands, I've had trouble removing waterproof mascaras, but this one stays on in the pool, but comes right off with my makeup remover wipes. The packaging was cool too. | 5.0
+Facial Cleansing Brush, Sonic Ultrasonic Vibration Facial Brush, Red-light for Deep Cleaning, Discharge Makeup, Gentle Exfoliating, Blackhead Removing, Massaging with 3 Adjustable Modes and Speeds | I wasn't quite sure how to use this facial cleansing brush because the instructions were not clear. However, I came back to the product's site on Amazon and learned more.<br /><br />I love how my face feels after using this brush. I take mine right in the shower with me, and while I'm waiting for my shampoo or conditioner's time to be up, I use my facial cleanser, and use this brush to clean. It's great for removing make-up, (which I rarely wear), and brow liners.<br /><br />Afterwards, even prior to applying serums and/or moisturizers, my face feels refreshed and vibrant. I feel like I'm getting a deeper clean than with my fingertips or washcloths or even make up removal wipes. I also feel like my skin ... | 4.0
+2Pcs Mascara Black Volume and Length 4D Natural and Long Lasting Lash Blast Mascara, 0.27 Fl Oz | My lashes are a bit sparse and a mascara that makes them look more full is like finding a unicorn,. But this time, I hit the jackpot. This review is of: Waterproof Mascara 2 Pcs Silicone Brush Head 4D Natural and Long Lasting Lash Blast Volume Mascara.<br /><br />I love this stuff. I can't deal with the whole false lashes thing, I don't do well with glues, and the magnetic ones don't seem to stay on well. When I tried this mascara I was hoping for fuller looking lashes and that's what I got! I do two coats and that does the trick for me. The brush is short so it's easier for me to apply as I seem to have more control, It's also a dense ... | 5.0
+
+The item description is Got2b Glued Spray Wax with 2-in-1 Dual Nozzle, 8 oz. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Blackhead Remover, Gahoroy Blackhead Vacuum Suction Remover, Electronic Pore Vacuum Cleaner, Acne Extractor Tool Set with LED Display for Facial Skin Treatment | So I was not sure what to expect when using this and I was happy with the results.<br />You definitely want to use steam to open your pores up first or you wont really see any results. As I was using this I was getting disappointed as I did not see it doing anything. The I looked at the ducking thing and there was stuff in there it got off my skin. Then the next morning my nose looked soo much better!!!<br />Every time I use this my face looks better and better, I wish I had taken before pictures!<br />Oh and start on the low setting cause wow does this thing have sucking power!!! | 4.0
+LaClaire Skin Revitalization Clarifying Formula - Exfoliating Face Wash - Anti Wrinkle Face Wash – 1.9 % Salicylic Acid Exfoliating Cleanser - Smooth, Young & Radiant Skin – For Daily Use - 50mL / 1.7 oz, Made in the USA | I was having a pretty bad breakout and this really helped me get it under control!!<br />It didnt even dry my skin out! I am very happy with this purchase!! | 5.0
+
+The item description is English Laundry Men's 4 Piece Coffret. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Ownest 6 Colors Glitter Lip Gloss,Shinning Glitters Lipstick Liquid Set Diamond Shimmer Lip Gloss Waterproof Lip Color Makeup | Very nice | 5.0
+6 Colors Glitter Liquid Lip Gloss Set Diamond Shimmer Metallic Non-stick Cup Waterproof pigment Nude Pearl Liquid Lipgloss for teens Makeup kit (6 PCS) | Nice | 5.0
+Ximimark 3Pcs Moon Crystal Rhinestone Beads Dangle Hairpin Hair Clip Women Bridal Hair Accessories Tassels Hairpin Silver&Gold&Rose Gold | Love them | 5.0
+
+The item description is Green Tea Cleansing Mask,Poreless Deep Cleanse Mask-Face Moisturizes Oil Control,Deep Clean Pore,Improve Skin,Cleansing Facial Stick for All Skin Types Women and Men. What is the user's rating of the item?
+
+Target: 1.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is Shower Cap for Women Reusable Long Hair Double Waterproof Large Shower Hair Hat Adjustable (11 inches, Green, Bowknot). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+2 Pack e.l.f. Essential All Over Color Stick Blush 3101 Pink Lemonade | Too small for the price. | 3.0
+Nutra Nail Speed Dry 30 Second Top Coat with Green Tea Antioxidants 0.50 oz (Pack of 3) | Hands down, the BEST I have ever used! | 5.0
+
+The item description is Nutra Nail Speed Dry Top Coat (Pack of 3). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+OC Nails UV Shield Glove (BLACK NIGHT) Anti UV Glove for Gel Manicures with UV/LED Lamps | Best price on amazon for this type glove. I was concerned with the size because of all the reviews but bought them anyway because all the others were 30 bucks and I wasn't paying that for them. I wear a size 7 glove which is a large in ladies gloves, I wear a size 9 shoe and I'm 5'8&#34;....you may wonder why I told you that? Well, hands are relative to feet and height. My hand is just under 3 1/2 inches wide at its widest and these fit me perfect. Many people said they fit big and that worried me. SO IF you are short with little feet, these will probably fit you big. They will stretch and I would expect them to fit a glove ... | 5.0
+
+The item description is IQ Natural, Mineral Makeup Sample Box, with 5 piece Black Brush Kit, "FAIR" Shade Makeup Samples. What is the user's rating of the item?
+
+Target: 3.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is Benefit Cosmetics Hoola Lite Bronzer (Natural Light Bronze) 0.28 oz. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is Mtmei hair 5Packs 10" Pre-twisted Spring Twist Hair Crochet Braids 15 Strands/Pack Nubian Bomb Twist Crochet Hair Messy Fluffy Spring Twist Crochet Hair Extensions(T27). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+BJÖRN HALL Nurse Headband with Buttons for Face Mask | Elastic Swimsuit Material, Smooth & Stretchy | Ear Saver Headband with Buttons | Perfect for Nurses, Doctors & Medical Students | This is a nice simple headband that's made out of stretchy swimsuit material. It is single layered so you won't get too warm wearing it. The part that goes behind the back of your head is narrower than the part that goes above your forehead. I wished the forehead part was narrower. I found the button placement fine for my mask (but it would be easy to adjust to your liking with some basic sewing skills). I like that the headband is snug but not uncomfortable. It does slide up a little in the back after a while. Something anti slip on the back would be nice to help keep the headband in place. It may be too tight if you have a larger head. The only ... | 4.0
+
+The item description is BJÖRN HALL Button Knotted Nurse Headbands for Women with Buttons | Ear Saver Headband with buttons | Headband with Buttons for Face Mask for Nurses & Doctors | Elastic Hair Band with Buttons | Protect Your Ears with this Headband | Floral Blue. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Pursoma Minerals Hot Tub Bath Treatment, 10.5 oz | I used this when I had a cold and it was really relaxing and soothing. Helped my sinuses quite a bit. Definitely recommend this! | 5.0
+TOUCH IN SOL Best of No Pore Blem Travel Kit - Face Makeup Primer, Big Pores Perfect Cover, Inner-Glowing Skin with Moisture, Long Lasting Makeup's Staying Kit | Great set that gives you smooth skin for your foundation makeup. Too heavily scented for my liking so I took a star off for that. This isn't the best primer I've tried in this price range but it works. A decent quality product that doesn't irritate my skin. | 4.0
+Portable Electric Nail Drill,Professional Nail Drill Kit for Acrylic Gel Nails,Efile Nail Drill Manicure Polishing Shape Tools for Beginners Home Salon Use,Purple | Works great and very easy to use! A great kit for people just starting out with nails. I also use it for various other things that I need to sand down a bit around the house, it works great on multiple things! Definitely recommend! | 4.0
+
+The item description is Bath Bombs Gift Basket for Women. 18 Moisturizing Bulk Bath Bombs with Essential Oils & Shea Butter. Organic, Individually Wrapped Bath Bombs Gift Set. Best Holiday Gift Basket for Women. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+MRTREUP 6 Colors Multi Shapes Rhinestones for Nails Crystals Nail Art Kit with Green AB Red Blue Gold Black Rhinestones Picking Pen Tweezer 3D Nail Diamonds Charms for Nail DIY Craft Makeup Jewelry | I like these. Very pretty for crafting, jewelry making, etc.<br />I'm not sure they would be comfortable to have on your face but I'm old sooo anyway.. I highly recommend them if you're crafting something pretty! | 5.0
+
+The item description is Big Hair Claw Clips for Women and Girls - 4.3 Inch 8 Pcs Matte Claw Hair Clips for Thick Hair, Large Jaw Clips for Thin Hair, 2 Styles Strong Hold Hair Accessories for Girls. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Orly Nail Lacquer - ELECTRIC ESCAPE Summer 2021 Collection - Pick Any Color .6oz/18ml (OR2000103 - Neon Paradise) | This is my FAVORITE color, of all time!!!! I've been going to the same nail salon, for six years and they know it's my go to color. Unfortunately, it seems to have become everyone else's color too and they NEVER have it. I ordered this for my personal use at the salon. I also ordered the matching toe polish. I ALWAYS get compliments on this color. It really pops with my melanin. | 5.0
+HONSKY Medium Water Repellent Travel Electronics Accessories Gadget Cable Cord Organizer, Hanging Cosmetic Makeup Toiletry Zipper Space Storage Bags Cases Pouch for Kid Women Men, Pink | The bag came as pictured and seems a tad bit larger in person. The material is great and I can absolutely forsee this bag being used for years to come. | 5.0
+
+The item description is Vaseline Lip Therapy Stick, Cocoa Butter, 4.8g. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+
+160 samples:
+{'reviews': {}, 'ratings': {'n_examples': 176, 'n_non_numerical': 0, 'rmse': 3.0179387908727615, 'mae': 2.5511363636363638, 'precision': 0.3693181818181818, 'recall': 0.23703703703703705, 'f1': 0.3657142857142857, 'auc': 0.5209575429087624, 'non_numerical_examples': []}}
+
+320 samples:
+{'reviews': {}, 'ratings': {'n_examples': 336, 'n_non_numerical': 0, 'rmse': 3.0389338669373913, 'mae': 2.5982142857142856, 'precision': 0.3482142857142857, 'recall': 0.22900763358778625, 'f1': 0.35398230088495575, 'auc': 0.49963895192902824, 'non_numerical_examples': []}}
+
+480 samples:
+{'reviews': {}, 'ratings': {'n_examples': 496, 'n_non_numerical': 0, 'rmse': 2.9716401466682205, 'mae': 2.5080645161290325, 'precision': 0.3790322580645161, 'recall': 0.2572178477690289, 'f1': 0.38888888888888895, 'auc': 0.5199132717106014, 'non_numerical_examples': []}}
+
+640 samples:
+{'reviews': {}, 'ratings': {'n_examples': 656, 'n_non_numerical': 0, 'rmse': 3.011664315825971, 'mae': 2.5548780487804876, 'precision': 0.3673780487804878, 'recall': 0.2524271844660194, 'f1': 0.3851851851851852, 'auc': 0.5198306135096055, 'non_numerical_examples': []}}
+
+800 samples:
+{'reviews': {}, 'ratings': {'n_examples': 816, 'n_non_numerical': 0, 'rmse': 3.0318974192383745, 'mae': 2.582107843137255, 'precision': 0.3602941176470588, 'recall': 0.250386398763524, 'f1': 0.3829787234042554, 'auc': 0.5157257437604602, 'non_numerical_examples': []}}
+
+960 samples:
+{'reviews': {}, 'ratings': {'n_examples': 976, 'n_non_numerical': 0, 'rmse': 3.0477753241060124, 'mae': 2.596311475409836, 'precision': 0.35758196721311475, 'recall': 0.2454780361757106, 'f1': 0.37735849056603776, 'auc': 0.5163033745234988, 'non_numerical_examples': []}}
+
+1120 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1136, 'n_non_numerical': 0, 'rmse': 3.0448525022672905, 'mae': 2.5950704225352115, 'precision': 0.3626760563380282, 'recall': 0.24692737430167597, 'f1': 0.379073756432247, 'auc': 0.5197292473168131, 'non_numerical_examples': []}}
+
+1280 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1296, 'n_non_numerical': 0, 'rmse': 3.03388782070827, 'mae': 2.584104938271605, 'precision': 0.36419753086419754, 'recall': 0.24951076320939333, 'f1': 0.38230884557721134, 'auc': 0.5207407830645506, 'non_numerical_examples': []}}
+
+1440 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1456, 'n_non_numerical': 0, 'rmse': 3.01019900952131, 'mae': 2.5559752747252746, 'precision': 0.375, 'recall': 0.2541776605101143, 'f1': 0.38844086021505375, 'auc': 0.5299101468694772, 'non_numerical_examples': []}}
+
+1600 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1616, 'n_non_numerical': 0, 'rmse': 3.006413318159025, 'mae': 2.546101485148515, 'precision': 0.3756188118811881, 'recall': 0.25691699604743085, 'f1': 0.39180229053646776, 'auc': 0.5301678997331172, 'non_numerical_examples': []}}
+
+1760 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1776, 'n_non_numerical': 0, 'rmse': 3.011357068897077, 'mae': 2.548141891891892, 'precision': 0.3761261261261261, 'recall': 0.2559309849029475, 'f1': 0.3912087912087912, 'auc': 0.5331602976462789, 'non_numerical_examples': []}}
+
+1920 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1936, 'n_non_numerical': 0, 'rmse': 3.0196712165728155, 'mae': 2.5637913223140494, 'precision': 0.37086776859504134, 'recall': 0.25229960578186594, 'f1': 0.3867069486404834, 'auc': 0.5295314454030102, 'non_numerical_examples': []}}
+
+Results: {'reviews': {}, 'ratings': {'n_examples': 2000, 'n_non_numerical': 0, 'rmse': 3.019043722770507, 'mae': 2.56275, 'precision': 0.37, 'recall': 0.25238397965670695, 'f1': 0.3865628042843233, 'auc': 0.5278313340906485, 'non_numerical_examples': []}}

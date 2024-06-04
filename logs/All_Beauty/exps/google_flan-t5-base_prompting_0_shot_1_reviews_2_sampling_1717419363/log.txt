@@ -1,0 +1,289 @@
+Model: google/flan-t5-base
+Tokenizer: google/flan-t5-base
+Task: Rating prediction
+Dataset: All_Beauty
+Approach: Prompting - 0 shot - 1 reviews 
+Sampling method: 2
+Device: cuda
+
+Data:
+                        user_id     item_id  rating                                             review      timestamp
+0  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B00YQ6X8EO     5.0  This spray is really nice. It smells really go...  1588687728923
+1  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B081TJ8YS3     4.0  This product does what I need it to do, I just...  1588615855070
+
+Input-Output example:
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+BEYELIAN Premade Fans Eyelash Extensions D Curl 0.10mm Pre made 6D for Volume Thick Sets Glue Bonded Knot-free Lashes (14mm) | Good product for the price | 4.0
+
+The item description is Moibase Gel Goldenrod Nail Polish Soak Off UV LED Gel Lacquer Nail Art Manicure Varnish 15ml Mustard Yellow A1018. What is the user's rating of the item?
+
+Target: 4.0
+
+
+
+Examples:
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+BEYELIAN Premade Fans Eyelash Extensions D Curl 0.10mm Pre made 6D for Volume Thick Sets Glue Bonded Knot-free Lashes (14mm) | Good product for the price | 4.0
+
+The item description is Moibase Gel Goldenrod Nail Polish Soak Off UV LED Gel Lacquer Nail Art Manicure Varnish 15ml Mustard Yellow A1018. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+PGXT Baby Girl Christmas Bow-knot Hairpin Headdress Headband Hair Band D020 | So cute! | 5.0
+
+The item description is Red Polka Dots Bow Mouse ears Hair Clips Barrettes Elastic Hair Bands Kids Girls Costume: M3 (MC Sparkling). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is BeautyKate 10Pcs Oval Makeup Brushes Set Soft Professional Toothbrush Face Foundation Contouring Blending Eyeshadow Eyeliner Concealer Blush Cosmetic Brush Tool Kit Rose Gold Black. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is Liquid Foundation,Foundation Cream,Flawless Colour Changing Foundation,Hides Wrinkles & Lines,BB Cream,Covering Imperfections Liquid Complete Foundation Cover,Universal Shade for ALL Skin Makeup. What is the user's rating of the item?
+
+Target: 1.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is Express Beauty Boutique Eyelash Curler Curling Set with Silicone Refill Replacement Pads Pink, 5pc. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Marc Anthony Argan Oil of Morocco Hairspray - Extra Hold Strength - Infused with Keratin for Volume & Shine - Net Wt. 8.8 OZ (250 g) - Pack of 2 | It is ok, but somewhat drying. | 3.0
+
+The item description is hengfang Waterproof New Mascara Charming Long Lasting Makeup (Purple). What is the user's rating of the item?
+
+Target: 3.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+QTMY Fashion Rhinestone Flower Headband,Wide Hair Hoop for Women,Hair Accessories Head Band Headwear,White | This is a really good hair band. Mind you it is quite expensive too perhaps because of the delicate work that is done on it. Now the work looks really nice, it is made out of metal and colorful crystals. The finish of the work is very good - it very neat and tidy. The hair band color is white which is prone to getting dirty. Hoping that machine wash will work very well with this hair band in case required.<br /><br />One downside of this necklace is that it is really heavy. As in quite a lot heavier than other such hair bands. To me it looks like that is the weight of all the metal and crystals that have been used to construct this hair ... | 4.0
+
+The item description is Glitter Eyeliner Liquid, Liquid Eyeliner Colorful Set, 10 Colors Liquid Glitter Eyeliner, Glitter Liquid Eyeshadow Set, Shimmer Sparkling Neon Eye liners for Women, Glitter Eyeliner Pencil. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is MotBach 18 Pieces Banana Hair Clips, French Banana Hair Comb, Rounded Edges Fish Shaped Grips Clamp, Ponytail Holder Combs, Hair Clips Hair Accessories For Women Beauty, 3 Sizes, 3 Colors. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is English Laundry Men's 4 Piece Coffret. What is the user's rating of the item?
+
+Target: 4.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is Magnetic Eyelashes and Magnetic Eyeliner kit, HazyMete 5 Pairs 3D False Lashes with Tweezers Reusable Magnetic Lashes Set, 5 Different Styles Magnetic Eyelashes, No Glue Needed. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+W7 Wild Eyes Eyeshadow Palette - 14 Natural, Purple Smoke Colors - Flawless Long-Lasting Makeup | I was disapointed in this palette. There isn't very much pigment to the shadows. The shimmers are very sheer and hard to pick up with a brush. Even using your finger it takes a lot of building. | 2.0
+
+The item description is Sonia Kashuk Limited Edition 10pc Brush Set Color Shock, goat hair. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Electric Portable Bidet | Given to me as a gift, it worked for two weeks, and wouldn't work anymore. You feel it trying to come on but never worked anymore. Otherwise a good starter drill | 1.0
+
+The item description is PANA Liquid Push Down Pump Dispenser Empty Bottle with Flip Top Cap (7 Ounce - 1 Bottle, Clear). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is bemndful Plant-based Micellar Cleansing Water All-in-One Gentle Cleanser, Makeup Remover for All Skin Types, Alcohol Free, Cruelty Free, All Natural Ingredients (8 oz). What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Susenstone20 pcs/set Makeup Brush Set (15 Colors Concealer + 20 BRUSH) | Wow, I freaking love this color concealer palette and the brush set. The brushes are surprisingly good quality, they don't shred at all. And the color concealers are good too. My fav colors are he green and purple for correcting purpose, the yellow to brightens, salmon color for under eyes, and a dark shade to contour. They are all very wearable though! Love this, so cheap too. Definitely recommend :) | 5.0
+
+The item description is Facial Cleansing Brush Face Cleansing Brush with 3 Replacement Brush Heads & 3 Modes, Waterproof, Type C Charging, Rotating Face Brush for Deep Cleansing, White. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+
+
+The item description is Tassel Earrings for Women Fashion - 15 Pack Colorful Drop Hook Fringe Earrings Set Tiered Thread Long Layered Ball Dangle Hoop Tassle Earrings Jewelry for Valentine Birthday Party Gift. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 1.0
+
+================================================================================
+
+
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Dark Spot Reducing Serum: Visibly Reduces Density of Age Spots, Sun Spots & Liver Spots. Fades Freckles, Dark Underarms & Under Eye Dark Circles. Vitamin C Collagen Boost for Smoother Complexion | Visible effects. I use it at night and in the morning i see real change in the way my face looks. You can see results in less than two weeks. I have noticed that my skin tone looks more even now. if you are 40 or coming close to it... start using it to stop signs of aging... It will help make your skin look so much better and smoother.<br />read this article to make an informed decision:<br />What Is Skin Bleaching?<br /><br />Skin bleaching is a cosmetic treatment to reduce the prominence of skin discolorations and even out the color of the skin. You can buy bleaching creams over the counter and by prescription.<br /><br />Some people apply skin lightener to their entire body to change ... | 5.0
+
+The item description is Clareye - Eye Cream For Dark Circles, Puffiness, Wrinkles. What is the user's rating of the item?
+
+Target: 5.0
+
+Output: 5.0
+
+================================================================================
+
+
+
+160 samples:
+{'reviews': {}, 'ratings': {'n_examples': 176, 'n_non_numerical': 0, 'rmse': 3.0609342008312073, 'mae': 2.5511363636363638, 'precision': 0.375, 'recall': 0.24647887323943662, 'f1': 0.38888888888888895, 'auc': 0.5791217895608947, 'non_numerical_examples': []}}
+
+320 samples:
+{'reviews': {}, 'ratings': {'n_examples': 336, 'n_non_numerical': 0, 'rmse': 3.1057741922640374, 'mae': 2.6160714285714284, 'precision': 0.3630952380952381, 'recall': 0.20912547528517111, 'f1': 0.3395061728395062, 'auc': 0.5634668472316267, 'non_numerical_examples': []}}
+
+480 samples:
+{'reviews': {}, 'ratings': {'n_examples': 496, 'n_non_numerical': 0, 'rmse': 3.1237900883588563, 'mae': 2.653225806451613, 'precision': 0.3487903225806452, 'recall': 0.20460358056265984, 'f1': 0.3312629399585921, 'auc': 0.5451589331384727, 'non_numerical_examples': []}}
+
+640 samples:
+{'reviews': {}, 'ratings': {'n_examples': 656, 'n_non_numerical': 0, 'rmse': 3.112230005921172, 'mae': 2.643292682926829, 'precision': 0.36128048780487804, 'recall': 0.20553359683794467, 'f1': 0.33173843700159494, 'auc': 0.5461001317523057, 'non_numerical_examples': []}}
+
+800 samples:
+{'reviews': {}, 'ratings': {'n_examples': 816, 'n_non_numerical': 0, 'rmse': 3.116016499238958, 'mae': 2.6605392156862746, 'precision': 0.35784313725490197, 'recall': 0.20032051282051283, 'f1': 0.32299741602067183, 'auc': 0.5350560897435896, 'non_numerical_examples': []}}
+
+960 samples:
+{'reviews': {}, 'ratings': {'n_examples': 976, 'n_non_numerical': 0, 'rmse': 3.1012623024911097, 'mae': 2.6424180327868854, 'precision': 0.3668032786885246, 'recall': 0.19645293315143247, 'f1': 0.31788079470198677, 'auc': 0.5385556846827121, 'non_numerical_examples': []}}
+
+1120 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1136, 'n_non_numerical': 0, 'rmse': 3.1107774944084814, 'mae': 2.654049295774648, 'precision': 0.3617957746478873, 'recall': 0.19064327485380117, 'f1': 0.31018078020932444, 'auc': 0.5366027762169362, 'non_numerical_examples': []}}
+
+1280 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1296, 'n_non_numerical': 0, 'rmse': 3.113714188775636, 'mae': 2.6535493827160495, 'precision': 0.3595679012345679, 'recall': 0.18480492813141683, 'f1': 0.3025210084033613, 'auc': 0.536501842947696, 'non_numerical_examples': []}}
+
+1440 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1456, 'n_non_numerical': 0, 'rmse': 3.1196382574174937, 'mae': 2.6634615384615383, 'precision': 0.35714285714285715, 'recall': 0.18454545454545454, 'f1': 0.3025335320417287, 'auc': 0.5374974463738509, 'non_numerical_examples': []}}
+
+1600 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1616, 'n_non_numerical': 0, 'rmse': 3.1085955569410544, 'mae': 2.646039603960396, 'precision': 0.3620049504950495, 'recall': 0.1817427385892116, 'f1': 0.2981620149761743, 'auc': 0.5361268437471606, 'non_numerical_examples': []}}
+
+1760 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1776, 'n_non_numerical': 0, 'rmse': 3.109760136748188, 'mae': 2.6503378378378377, 'precision': 0.36036036036036034, 'recall': 0.17727272727272728, 'f1': 0.2917705735660848, 'auc': 0.5338118022328548, 'non_numerical_examples': []}}
+
+1920 samples:
+{'reviews': {}, 'ratings': {'n_examples': 1936, 'n_non_numerical': 0, 'rmse': 3.1120599858248075, 'mae': 2.6508264462809916, 'precision': 0.3584710743801653, 'recall': 0.17406380027739252, 'f1': 0.28784403669724773, 'auc': 0.5354124669403156, 'non_numerical_examples': []}}
+
+Results: {'reviews': {}, 'ratings': {'n_examples': 2000, 'n_non_numerical': 0, 'rmse': 3.1169696822394664, 'mae': 2.6575, 'precision': 0.3565, 'recall': 0.1722520107238606, 'f1': 0.2853970016657413, 'auc': 0.5349449029997255, 'non_numerical_examples': []}}

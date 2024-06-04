@@ -1,0 +1,32 @@
+Model: google/flan-t5-base
+Tokenizer: google/flan-t5-base
+Task: Review and rating prediction
+Dataset: All_Beauty
+Approach: Prompting - 0 shot - 4 reviews 
+Sampling method: 0
+Device: cpu
+
+Data:
+                        user_id     item_id  rating                                             review      timestamp
+0  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B00YQ6X8EO     5.0  This spray is really nice. It smells really go...  1588687728923
+1  AGKHLEW2SOWHNMFQIJGBECAF7INQ  B081TJ8YS3     4.0  This product does what I need it to do, I just...  1588615855070
+
+Input-Output example:
+Input: Let's consider an user-item pair.
+
+Here are some examples of user reviews and ratings for other items, in the format item description | review | rating (from 1.0 to 5.0):
+Disposable Shower Cap, Elastic Bath Cap,Waterproof Hair Head Cover Shower Cap For Home Use,Hotel and Beauty Salon,Pack of 120 （Blue) | This single layer thin blue shower disposable shower caps are tiny. They are really for a kids head. I can barely get my hair into this. There are 120 (I did not count them) tiny blue slivers that have to be unraveled. Since they are so small, these would work best to cover the tops of small serving bowls during a picnic to keep the flies away. These are functional but I am not impressed. | 3.0
+The Sunset Dusk Palette | 15 Color Eye Shadow of BEAUTY GLAZED Eyeshadow Palette | QyeeCosmetics. - Amazon Vine | I wish I could wear these colors but most of them are too deeply hued for my fair complexion. I tried several of the colors and many make my eyes look swollen and puffy as if I had an eye infection. If I had olive or brown skin, I think these colors would look awesome. The only colors I was able to wear in this pallet are the pearl, volcano, bronze, sunset, 24k, and ash. I absolutely love the shimmer on many of these. I like that the "compact pallet holder" has a magnetic closure. Eye applicators have to be purchased separately. Despite this, I think $7.88 is a great price for this selection. The colors that I did apply stayed put all day.<br /><br />The 15 ... | 4.0
+Folie for Women EDP - Eau De Parfum 100ml(3.4 oz) | Saffron, Red Fruits, Hedione, Jasmine, Moss, Amber | Perfume, Perfumes for women, Women's fragrances, Fragrance, Womens perfume | by Intense Elite | I wish I loved this. This is a nicely packaged perfume in an attractive bottle with a gold-colored tassel hanging from the side. The scent is neither offensive nor enticing. I can't even describe what it smells like. It is so very subtle but it lasts a few hours.<br /><br />The current price of $44.99 ($49.99 minus $5) is competitively priced for perfume like this but it is not one I would order again as I have to really love it to pay that much. | 3.0
+ikikin Body Brush Soft Silicone Bath brush Exfoliating Body Scrub Brush, Shower Cleansing Scrubber Brush for Double-Sided Silicone Sponge Bath Brush with Soft Brush pink+blue | There are two body brushes in this package (pastel blue and quartz pink). Each one has a silicone sleeve into which a soft sponge has been inserted. The sleeve has a loop for hanging, nubbs on one side for scrubbing, and various small ridges on the other side for light scrubbing.<br /><br />I used the pink one in my pink bathroom; it matches perfectly. I showered with it and it holds the suds well. I personally like the nubbed side because it is like getting a massage while washing. My favorite bath "sponge" is actually a body puff (those with the netting material) because they lather up well. This "brush" is now my second favorite. If the suds were prolific with this "brush" like the body puffs ... | 4.0
+
+Here are some examples of other users' reviews and ratings for the item, in the format review | rating (from 1.0 to 5.0):
+These brushes were absolutely beautiful and very soft but I did return them. Most of the brushes are the same exact size. I was looking for eyeshadow brushes more so than face brushes. I could’ve looked at the pictures a little bit closer to see that the kit only came with bigger brushes. No big deal but if you were looking for big brushes this is definitely a kit to buy! | 3.0
+I love the design and the brushes are very soft! The bag that the come in will be perfect for travel! | 5.0
+This is a nice set of brushes. The brush is a soft pink synthetic fiber. The handles are a pinkish crystal handle. The brushes come in a clear plastic bag that closes to store your brushes. | 5.0
+Brushes are super cute! I love the matching traveling case. The brushes came individually wrapped and are really soft and blends well. Great buy! | 5.0
+
+The item description is DOYIZZ Makeup Brushes Set, 10pcs Crystal Handle Makeup Brushes Powder Blush Brush Foundation Brush Blending Eye shadow Concealer Makeup Brush Set (Pink). What are the user's review and rating for the item? In review | rating format.
+
+Target: There are 10 brushes in total and a carry pouch. I really love these brushes. The geometric shape of the handles provide a good surface area for gripping each brush during application. The bristles are soft and they do not fall out of the brush. They feel great against my skin.<br /><br />Based on the Amazon site, these are the brushes in the set. Note that I cropped a photo of the brushes from the site and attached it to my review, so that one can see each brush's use.<br /><br />- powder brush<br />- blush brush<br />- angled contour brush<br />- foundation brush<br />- nasal shadow brush<br />- big eyeshadow brush<br />- small eyeshadow brush<br />- blending brush<br />- eyebrow brush<br />- lip brush<br /><br />In summary, I love that it has more smaller brushes than larger one because they are better for detail/precision applications. The current price of $15.19 ($18.99 minus 20%) comes to $1.27 per brush which I consider reasonable. I also love the color of these brushes as they match my pink bathroom. | 5.0
+

@@ -1,0 +1,12 @@
+Task: Rating prediction
+Dataset: All_Beauty
+Device: cuda
+
+Data:
+                             user_id     item_id  rating  user_vocab_id  item_vocab_id
+256007  AGZ3WCQ3ZEKGX7PWFYETECFTL6PA  B07VVX6WX2     5.0              1              1
+412340  AGKBC37BQ5RDEARQHLXYRAIEGTJQ  B07SQW5715     4.0              2              2
+421443  AF5K4BYX5PPWSWQVRIXVFZG6D4TQ  B084327QK2     5.0              3              3
+525422  AGXCC5QVCRABCEZEUMAWGS3YZC5A  B00OS9YWJY     5.0              4              4
+593708  AGT2ECB27AESHMP5PTEJSBFKLUJQ  B00W1J4SFG     5.0              5              5
+
