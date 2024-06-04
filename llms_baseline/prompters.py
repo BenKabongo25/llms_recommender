@@ -4,6 +4,9 @@
 # Basline approach
 # Prompts/formats for source and target
 
+from typing import *
+from common.utils.preprocess_text import preprocess_text
+
 
 class SourcePrompter:
     """
@@ -387,8 +390,10 @@ class TargetFormer:
         return review, rating
     
     @classmethod
-    def truncate_text(cls, text: str, max_length: int) -> str:
-        text = str(text).strip().split()
-        if len(text) > max_length:
-            text = text[:max_length - 1] + ["..."]
+    def process_text(cls, text: str, max_length: int, args: Any) -> str:
+        text = preprocess_text(text, args)
+        if args.truncate_flag:
+            text = str(text).strip().split()
+            if len(text) > max_length:
+                text = text[:max_length - 1] + ["..."]
         return " ".join(text) 

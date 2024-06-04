@@ -215,9 +215,10 @@ class BaseDataset(Dataset):
 
             description = ""
             if len(descs) > 0:
-                description = TargetFormer.truncate_text(
-                    text=str(descs[0]),
-                    max_length=self.args.max_description_length
+                description = TargetFormer.process_text(
+                    text=str(descs[0]), 
+                    max_length=self.args.max_description_length,
+                    args=self.args
                 )
             example += description
             
@@ -227,9 +228,10 @@ class BaseDataset(Dataset):
             
         review = ""
         if self.args.source_review_flag:
-            review = TargetFormer.truncate_text(
-                text=str(row[self.args.review_column]),
-                max_length=self.args.max_review_length
+            review = TargetFormer.process_text(
+                text=str(row[self.args.review_column]), 
+                max_length=self.args.max_review_length,
+                args=self.args
             )
 
         rating = ""
@@ -280,9 +282,10 @@ class BaseDataset(Dataset):
                 self.args.user_description_column
             ].values
             if len(descs) > 0:
-                user_description = TargetFormer.truncate_text(
-                    text=str(descs[0]),
-                    max_length=self.args.max_description_length
+                user_description = TargetFormer.process_text(
+                    text=str(descs[0]), 
+                    max_length=self.args.max_description_length,
+                    args=self.args
                 )
 
         item_id = sample[self.args.item_id_column]
@@ -293,9 +296,10 @@ class BaseDataset(Dataset):
                 self.args.item_description_column
             ].values
             if len(descs) > 0:
-                item_description = TargetFormer.truncate_text(
-                    text=str(descs[0]),
-                    max_length=self.args.max_description_length
+                item_description = TargetFormer.process_text(
+                    text=str(descs[0]), 
+                    max_length=self.args.max_description_length,
+                    args=self.args
                 )
 
         return {

@@ -253,6 +253,12 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
+    # Model
+    parser.add_argument("--max_source_length", type=int, default=1024)
+    parser.add_argument("--max_target_length", type=int, default=128)
+    parser.add_argument("--model_name_or_path", type=str, default="google/flan-t5-base")
+    parser.add_argument("--tokenizer_name_or_path", type=str, default="google/flan-t5-base")
+
     # base
     parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_processed")
     parser.add_argument("--dataset_name", type=str, default="All_Beauty")
@@ -312,11 +318,31 @@ if __name__ == "__main__":
     parser.add_argument("--target_rating_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(target_rating_flag=True)
 
-    # Model
-    parser.add_argument("--max_source_length", type=int, default=1024)
-    parser.add_argument("--max_target_length", type=int, default=128)
-    parser.add_argument("--model_name_or_path", type=str, default="google/flan-t5-base")
-    parser.add_argument("--tokenizer_name_or_path", type=str, default="google/flan-t5-base")
+    # Preprocessing
+    parser.add_argument("--truncate_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(truncate_flag=True)
+    parser.add_argument("--lower_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(lower_flag=False)
+    parser.add_argument("--delete_balise_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(delete_balise_flag=True)
+    parser.add_argument("--delete_stopwords_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(delete_stopwords_flag=False)
+    parser.add_argument("--delete_punctuation_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(delete_punctuation_flag=False)
+    parser.add_argument("--delete_non_ascii_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(delete_non_ascii_flag=False)
+    parser.add_argument("--delete_digit_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(delete_digit_flag=False)
+    parser.add_argument("--replace_maj_word_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(replace_maj_word_flag=False)
+    parser.add_argument("--first_line_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(first_line_flag=False)
+    parser.add_argument("--last_line_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(last_line_flag=False)
+    parser.add_argument("--stem_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(stem_flag=False)
+    parser.add_argument("--lemmatize_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(lemmatize_flag=False)
 
     args = parser.parse_args()
     main(args)
