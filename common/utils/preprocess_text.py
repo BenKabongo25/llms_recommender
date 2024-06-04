@@ -47,7 +47,7 @@ def stem(text: str) -> str:
     stemmed_text = " ".join(stemmed_tokens)
     return stemmed_text
 
-def lemmatize(text; str) -> str:
+def lemmatize(text: str) -> str:
     lemmatizer = WordNetLemmatizer()
     tokens = nltk.word_tokenize(text)
     lemmatized_tokens = [lemmatizer.lemmatize(token) for token in tokens]

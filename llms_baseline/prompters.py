@@ -4,7 +4,13 @@
 # Basline approach
 # Prompts/formats for source and target
 
+import os
+import sys
 from typing import *
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+
 from common.utils.preprocess_text import preprocess_text
 
 
