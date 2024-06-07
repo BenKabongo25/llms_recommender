@@ -22,23 +22,6 @@ class SamplingMethod(enum.Enum):
 
 
 class Sampler:
-    """
-    Args:
-        - n_reviews: int
-        - n_samples: int
-            0 for zero shot, >= 1 for few shot
-        - sampling_method: int
-            see sampler.SamplingMethod
-        - similarity_function: int
-            see similarities.SimilarityFunction
-        - user_only_flag: bool
-        - user_id_column: str
-        - item_id_column: str
-        - rating_column: str
-        - review_column: str
-        - timestamp_column: str
-        - random_state: int
-    """
 
     def __init__(
         self, 
@@ -116,7 +99,6 @@ class Sampler:
         negative_ids: Optional[List]=[],
         timestamp: Optional[int]=None
     ) -> pd.DataFrame:
-
         if user_based:
             a_column = self.args.user_id_column
             b_column = self.args.item_id_column
@@ -217,7 +199,6 @@ class Sampler:
         item_id: Union[int, float, str],
         timestamp: Optional[int]=None
     ) -> Tuple[pd.DataFrame]:
-        
         user_examples = self.user_sample(
             user_id=user_id,
             negative_items_ids=[item_id],
@@ -241,8 +222,6 @@ class Sampler:
         item_id: Union[int, float, str],
         timestamp: Optional[int]=None
     ) -> Tuple[pd.DataFrame]:
-        
-        # TODO: best data selection
         data = self._sample_from_df(
             self.data_df[(self.data_df[self.args.user_id_column] != user_id) & 
                          (self.data_df[self.args.item_id_column] != item_id)],

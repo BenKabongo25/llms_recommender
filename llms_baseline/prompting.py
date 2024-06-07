@@ -18,7 +18,7 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 from typing import *
 from tqdm import tqdm
 
-from data import DataSplitter, TextDataset
+from data import DatasetCreator, DataSplitter, TextDataset
 from prompters import TargetFormer
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -164,35 +164,53 @@ def get_prompt_model(args):
     
     
 def main(args):
+    id = int(time.time())
+
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
-    if args.dataset_path == "":
-        args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
-    data_df = pd.read_csv(args.dataset_path, index_col=0)
 
-    spliter = DataSplitter(args)
-    data_split = spliter.split(data_df)
-    sampling_df, base_df = data_split["sampling"], data_split["base"]
+    if args.text_data_path != "":
+        text_df = pd.read_csv(args.text_data_path)
+    
+    else:
+        if args.dataset_path == "":
+            args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
+        data_df = pd.read_csv(args.dataset_path, index_col=0)
 
-    users_df = None
-    if args.user_description_flag:
-        if args.users_path == "":
-            args.users_path = os.path.join(args.dataset_dir, "users.csv")
-        users_df = pd.read_csv(args.users_path, index_col=0)
+        spliter = DataSplitter(args)
+        data_split = spliter.split(data_df)
+        sampling_df, base_df = data_split["sampling"], data_split["base"]
 
-    items_df = None
-    if args.item_description_flag:
-        if args.items_path == "":
-            args.items_path = os.path.join(args.dataset_dir, "items.csv")
-        items_df = pd.read_csv(args.items_path, index_col=0)
+        users_df = None
+        if args.user_description_flag:
+            if args.users_path == "":
+                args.users_path = os.path.join(args.dataset_dir, "users.csv")
+            users_df = pd.read_csv(args.users_path, index_col=0)
 
-    dataset = TextDataset(
-        sampling_df=sampling_df, 
-        base_df=base_df,
-        users_df=users_df,
-        items_df=items_df,
-        args=args
-    )
+        items_df = None
+        if args.item_description_flag:
+            if args.items_path == "":
+                args.items_path = os.path.join(args.dataset_dir, "items.csv")
+            items_df = pd.read_csv(args.items_path, index_col=0)
+
+        if args.save_data_dir == "":
+            args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(id))
+            os.makedirs(args.save_data_dir, exist_ok=True)
+            args_file_path = os.path.join(args.save_data_dir, "args.json")
+            with open(args_file_path, "w") as args_file:
+                json.dump(vars(args), args_file)
+
+        creator = DatasetCreator(
+            sampling_df=sampling_df,
+            base_df=base_df,
+            users_df=users_df,
+            items_df=items_df,
+            args=args
+        )
+        creator.create_dataset()
+        text_df = creator.get_text_df()
+
+    dataset = TextDataset(text_df)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -201,7 +219,7 @@ def main(args):
         args.exp_name = (
             f"{args.model_name_or_path}_prompting_" +
             f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
-            f"{args.sampling_method}_sampling_{int(time.time())}"
+            f"{args.sampling_method}_sampling_{id}"
         )
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
@@ -232,7 +250,7 @@ def main(args):
             f"Approach: Prompting - {args.n_samples} shot - {args.n_reviews} reviews \n" +
             f"Sampling method: {args.sampling_method}\n" +
             f"Device: {device}\n\n" +
-            f"Data:\n{data_df.head(2)}\n\n"
+            f"Data:\n{text_df.head(2)}\n\n"
             f"Input-Output example:\n{log_example}\n\n"
         )
         print("\n" + log)
@@ -254,10 +272,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Model
-    parser.add_argument("--max_source_length", type=int, default=1024)
-    parser.add_argument("--max_target_length", type=int, default=128)
     parser.add_argument("--model_name_or_path", type=str, default="google/flan-t5-base")
     parser.add_argument("--tokenizer_name_or_path", type=str, default="google/flan-t5-base")
+    parser.add_argument("--max_source_length", type=int, default=1024)
+    parser.add_argument("--max_target_length", type=int, default=128)
 
     # base
     parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_processed")
@@ -266,6 +284,11 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--users_path", type=str, default="")
     parser.add_argument("--items_path", type=str, default="")
+    parser.add_argument("--text_data_path", type=str, 
+                        default="Datasets\\AmazonReviews2023_processed\\All_Beauty\samples\\1717749805\\text_data.csv")
+    parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(save_data_flag=True)
+    parser.add_argument("--save_data_dir", type=str, default="")
     parser.add_argument("--lang", type=str, default="en")
     parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
     parser.set_defaults(verbose=True)
@@ -276,10 +299,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--base_data_size", type=float, default=0.25)
     parser.add_argument("--max_base_data_samples", type=int, default=2_000)
-    parser.add_argument("--train_size", type=float, default=0.8)
-    parser.add_argument("--test_size", type=float, default=0.2)
-    parser.add_argument("--val_size", type=float, default=0.0)
-
     parser.add_argument("--split_method", type=int, default=0)
     parser.add_argument("--sampling_method", type=int, default=1)
     parser.add_argument("--similarity_function", type=int, default=0)
@@ -322,7 +341,7 @@ if __name__ == "__main__":
     parser.add_argument("--truncate_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(truncate_flag=True)
     parser.add_argument("--lower_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(lower_flag=False)
+    parser.set_defaults(lower_flag=True)
     parser.add_argument("--delete_balise_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(delete_balise_flag=True)
     parser.add_argument("--delete_stopwords_flag", action=argparse.BooleanOptionalAction)
@@ -330,7 +349,7 @@ if __name__ == "__main__":
     parser.add_argument("--delete_punctuation_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(delete_punctuation_flag=False)
     parser.add_argument("--delete_non_ascii_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(delete_non_ascii_flag=False)
+    parser.set_defaults(delete_non_ascii_flag=True)
     parser.add_argument("--delete_digit_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(delete_digit_flag=False)
     parser.add_argument("--replace_maj_word_flag", action=argparse.BooleanOptionalAction)

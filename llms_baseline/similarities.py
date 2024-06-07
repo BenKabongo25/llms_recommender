@@ -40,7 +40,7 @@ def compute_similarity(
     )
     
     r_a = np.array(common_data_df[args.rating_column + "_a"])
-    r_b = np.array(common_data_df[args.rating_column + "_a"])
+    r_b = np.array(common_data_df[args.rating_column + "_b"])
 
     if sim_fn is SimilarityFunction.COSINE:
         sim = (r_a * r_b).sum() / np.sqrt((r_a ** 2).sum() * (r_b ** 2).sum())
@@ -49,4 +49,6 @@ def compute_similarity(
                 np.sqrt(((r_a - r_a.mean()) ** 2).sum() * ((r_b - r_b.mean()) ** 2).sum()))
     elif sim_fn is SimilarityFunction.MSD:
         sim = len(r_a) / ((r_a - r_b) ** 2).sum()
+    else:
+        raise ValueError("Unknown similarity function!")
     return sim

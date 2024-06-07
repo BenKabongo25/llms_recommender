@@ -6,9 +6,11 @@
 
 import enum
 import numpy as np
+import os
 import pandas as pd
 from typing import *
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 from prompters import SourcePrompter, TargetFormer
 from sampler import Sampler, SamplingMethod
@@ -23,19 +25,6 @@ class SplitMethod(enum.Enum):
 
 
 class DataSplitter:
-    """
-    Args:
-        - split_method: int
-            see data.SplitMethod
-        - n_reviews
-        - base_data_size: float
-        - max_base_data_samples : int
-        - train_size: float
-        - test_size: float
-        - val_size: float
-        - user_id_column: str
-        - item_id_column: str
-    """
 
     def __init__(self, args):
         self.args = args
@@ -43,35 +32,26 @@ class DataSplitter:
 
 
     def filter_min_examples(self, data_df: pd.DataFrame, n_examples: int=1):
-        users_count = (
-            data_df
-            .groupby(self.args.user_id_column)
-            .size()
-            .reset_index(name="n_examples")
-        )
-        users_filtered = (
-            users_count[users_count["n_examples"] > n_examples][self.args.user_id_column]
-        ).tolist()
+        all_users = data_df[self.args.user_id_column].value_counts()
+        selected_users = all_users[all_users.values > n_examples]
 
-        items_count = (
-            data_df
-            .groupby(self.args.item_id_column)
-            .size()
-            .reset_index(name="n_examples")
-        )
-        items_filtered = (
-            items_count[items_count["n_examples"] > n_examples][self.args.item_id_column]
-        ).tolist()
+        all_items = data_df[self.args.item_id_column].value_counts()
+        selected_items = all_items[all_items.values > n_examples]
 
-        filtered_df = data_df[data_df[self.args.user_id_column].isin(users_filtered)]
-        filtered_df = filtered_df[filtered_df[self.args.item_id_column].isin(items_filtered)]
+        filtered_df = data_df[data_df[self.args.user_id_column].isin(selected_users.index)]
+        filtered_df = filtered_df[filtered_df[self.args.item_id_column].isin(selected_items.index)]
         return filtered_df
 
 
-    def split(self, data_df: pd.DataFrame) -> Dict:
-        filtered_df = self.filter_min_examples(data_df, self.args.n_reviews)
+    def split(
+        self, 
+        data_df: pd.DataFrame, 
+        filter_min_examples_flag: bool=True
+    ) -> Dict:
+        if filter_min_examples_flag:
+            data_df = self.filter_min_examples(data_df, self.args.n_reviews)
 
-        base_df = filtered_df.sample(
+        base_df = data_df.sample(
             frac=self.args.base_data_size, 
             random_state=self.args.random_state
         )
@@ -86,71 +66,57 @@ class DataSplitter:
         }
 
     
-    def train_test_eval_split(self, data_df: pd.DataFrame) -> Dict:
-        test_size = self.args.test_size / (self.args.test_size + self.args.val_size)
-        eval_size = 1 - test_size
+    def train_test_split(self, data_df: pd.DataFrame) -> Dict:
+        data_df = self.filter_min_examples(data_df, self.args.n_reviews)
         
         if self.split_method is SplitMethod.USER_BASED:
             users = data_df[self.args.user_id_column].unique()
             n_users = len(users)
-            n_train = self.args.train_size * n_users
-            # TODO:
-            train_df, test_df, eval_df = None, None, None
+            n_train = int(self.args.train_size * n_users)
+            train_users = np.random.choice(users, size=n_train, replace=False)
+            train_df = data_df[data_df[self.args.user_id_column].isin(train_users)]
+            test_df = data_df[~data_df[self.args.user_id_column].isin(train_users)]
         
         elif self.split_method is SplitMethod.ITEM_BASED:
-            pass
-            # TODO:
-            train_df, test_df, eval_df = None, None, None
+            items = data_df[self.args.item_id_column].unique()
+            n_items = len(items)
+            n_train = int(self.args.train_size * n_items)
+            train_items = np.random.choice(items, size=n_train, replace=False)
+            train_df = data_df[data_df[self.args.item_id_column].isin(train_items)]
+            test_df = data_df[~data_df[self.args.item_id_column].isin(train_items)]
+        
+        elif self.split_method is SplitMethod.USER_ITEM_BASED:
+            users = data_df[self.args.user_id_column].unique()
+            items = data_df[self.args.item_id_column].unique()
+            n_users = len(users)
+            n_items = len(items)
+            n_train_users = int(self.args.train_size * n_users)
+            n_train_items = int(self.args.train_size * n_items)
+            train_users = np.random.choice(users, size=n_train_users, replace=False)
+            train_items = np.random.choice(items, size=n_train_items, replace=False)
+            train_df = data_df[
+                (data_df[self.args.user_id_column].isin(train_users)) &
+                (data_df[self.args.item_id_column].isin(train_items))
+            ]
+            test_df = data_df[
+                (~data_df[self.args.user_id_column].isin(train_users)) |
+                (~data_df[self.args.item_id_column].isin(train_items))
+            ]
 
         else: # random
             train_df = data_df.sample(
                 frac=self.args.train_size, 
                 random_state=self.args.random_state
             )
-            test_eval_df = data_df.drop(train_df.index)
-            if eval_size == 0:
-                test_df = test_eval_df
-                eval_df = None
-            else:
-                test_df = test_eval_df.sample(
-                    frac=test_size,
-                    random_state=self.args.random_state
-                )
-                eval_df = test_eval_df.drop(test_df.index)
+            test_df = data_df.drop(train_df.index)
 
-        default_split = {"sampling": None, "base": None}
-            
         return {
-            "train": self.split(train_df) if train_df is not None else default_split,
-            "test": self.split(test_df) if test_df is not None else default_split,
-            "eval": self.split(eval_df) if eval_df is not None else default_split,
+            "train": self.split(train_df, False),
+            "test": self.split(test_df, False)
         }
     
 
-class BaseDataset(Dataset):
-    """
-    Args:
-        - n_reviews: int
-        - n_samples: int
-            0 for zero shot, >= 1 for few shot
-        - sampling_method: int
-            see sampler.SamplingMethod
-        - user_id_column: str
-        - item_id_column: str
-        - rating_column: str
-        - review_column: str
-        - timestamp_flag: bool
-        - timestamp_column: str
-        - random_state: int
-        - user_description_flag: bool
-        - item_description_flag: bool
-        - user_description_column: str
-        - item_description_column: str
-        - source_review_flag: bool
-        - source_rating_flag: bool
-        - target_review_flag: bool
-        - target_rating_flag: bool
-    """
+class DatasetCreator:
 
     def __init__(
         self, 
@@ -174,26 +140,50 @@ class BaseDataset(Dataset):
         self.users_df = users_df
         self.items_df = items_df
         self.args = args
+        
+        self.source_prompter = SourcePrompter(self.args)
+        self.target_former = TargetFormer(self.args)
+        
+        self.sampled_data_df = None
+        self.text_df = None
 
 
-    def __len__(self) -> int:
-        return len(self.base_df)
+    def _add_sampled_data(self, samples_df: pd.DataFrame):
+        if samples_df is None:
+            return
+        if self.sampled_data_df is None:
+            self.sampled_data_df = samples_df
+        else:
+            self.sampled_data_df = pd.concat(
+                [self.sampled_data_df, samples_df]
+            ).drop_duplicates()
+
     
-    def _getitem(self, index: int) -> Tuple:
-        sample = self.base_df.iloc[index]
+    def _add_text_data(self, text_df: pd.DataFrame):
+        if text_df is None:
+            return
+        if self.text_df is None:
+            self.text_df = text_df
+        else:
+            self.text_df = pd.concat(
+                [self.text_df, text_df]
+            ).drop_duplicates()
 
-        timestamp = None
-        if self.args.timestamp_flag:
-            timestamp = sample[self.args.timestamp_column]
 
-        return sample, self.sampler.sample(
-            user_id=sample[self.args.user_id_column],
-            item_id=sample[self.args.item_id_column],
-            timestamp=timestamp
-        )
-    
+    def save_data(self, save_dir: str):
+        if self.sampled_data_df is not None:
+            self.sampled_data_df.to_csv(
+                os.path.join(save_dir, "sampled_data.csv"),
+                index=False
+            )
+        if self.text_df is not None:
+            self.text_df.to_csv(
+                os.path.join(save_dir, "text_data.csv"),
+                index=False
+            )
 
-    def _format_example(self, row, user_based: bool):
+
+    def _format_example(self, row, user_based: bool) -> str:
         if user_based:
             description_flag = self.args.item_description_flag
             description_df = self.items_df
@@ -254,7 +244,6 @@ class BaseDataset(Dataset):
         user_examples: pd.DataFrame, 
         item_examples: pd.DataFrame
     ) -> Dict:
-        
         sep_token = "\n"
 
         user_examples = sep_token.join(
@@ -301,67 +290,128 @@ class BaseDataset(Dataset):
                     max_length=self.args.max_description_length,
                     args=self.args
                 )
+        
+        rating = sample[self.args.rating_column]
+        review = TargetFormer.process_text(
+            text=sample[self.args.review_column],
+            max_length=self.args.max_review_length,
+            args=self.args
+        )
 
         return {
             "user_id": user_id,
             "item_id": item_id,
-            "rating": sample[self.args.rating_column],
-            "review": sample[self.args.review_column],
+            "rating": rating,
+            "review": review,
             "user_examples": user_examples,
             "item_examples": item_examples,
             "user_description": user_description,
             "item_description": item_description,
         }
         
+
+    def _getitem(self, index: int) -> Tuple:
+        sample = self.base_df.iloc[index]
+
+        timestamp = None
+        if self.args.timestamp_flag:
+            timestamp = sample[self.args.timestamp_column]
+
+        return sample, self.sampler.sample(
+            user_id=sample[self.args.user_id_column],
+            item_id=sample[self.args.item_id_column],
+            timestamp=timestamp
+        )
+
     
-    def zero_shot_getitem(self, index: int) -> Dict:
+    def _zero_shot_add(self, index: int):
         sample, (user_examples, item_examples) = self._getitem(index)
-        return self._format_sample(sample, user_examples, item_examples)
 
+        self._add_sampled_data(user_examples)
+        self._add_sampled_data(item_examples)
 
-    def few_shot_getitem(self, index: int) -> Dict:
+        sample_ = self._format_sample(sample, user_examples, item_examples)
+        source_text = self.source_prompter(sample_)
+        target_text = self.target_former(sample_)
+
+        text_dict = {}
+        for k in ["user_id", "item_id", "review", "rating"]:
+            text_dict[k] = [sample_[k]]
+        text_dict["source"] = [source_text]
+        text_dict["target"] = [target_text]
+        text_data = pd.DataFrame(text_dict)
+        self._add_text_data(text_data)
+
+        
+    def _few_shot_add(self, index: int):
         sample, (data, shots, ui_examples) = self._getitem(index)
+
+        self._add_sampled_data(data)
         
         shots_samples = []
         for idx in data.index:
             vj_sample = data.loc[idx]
-            vj_examples = shots[idx]
-            shots_samples.append(self._format_sample(vj_sample, *vj_examples))
+            v_examples, j_examples = shots[idx]
 
-        return {
+            self._add_sampled_data(v_examples)
+            self._add_sampled_data(j_examples)
+
+            shots_samples.append(self._format_sample(vj_sample, v_examples, j_examples))
+
+        sample_ = {
             "shots": shots_samples,
             "sample": self._format_sample(sample, *ui_examples)
         }
+        source_text = self.source_prompter(sample_)
+        target_text = self.target_former(sample_)
+
+        text_dict = {}
+        for k in ["user_id", "item_id", "review", "rating"]:
+            text_dict[k] = [sample_["sample"][k]]
+        text_dict["source"] = [source_text]
+        text_dict["target"] = [target_text]
+        text_data = pd.DataFrame(text_dict)
+        self._add_text_data(text_data)
+
+
+    def create_dataset(self):
+        for index in tqdm(
+            range(len(self.base_df)), 
+            desc="Dataset creation",
+            colour="green"
+        ):
+            if self.sampler.is_zero_shot():
+                self._zero_shot_add(index)
+            else:
+                self._few_shot_add(index)
+
+        if self.args.save_data_flag:
+            self.save_data(self.args.save_data_dir)
+
+
+    def get_sampled_df(self) -> pd.DataFrame:
+        return self.sampled_data_df
     
 
-    def __getitem__(self, index: int) -> Dict:
-        if self.sampler.is_zero_shot():
-            return self.zero_shot_getitem(index)
-        return self.few_shot_getitem(index)
+    def get_text_df(self) -> pd.DataFrame:
+        return self.text_df
     
 
-class TextDataset(BaseDataset):
+class TextDataset(Dataset):
 
-    def __init__(
-        self, 
-        sampling_df: pd.DataFrame,
-        base_df: pd.DataFrame, 
-        users_df: Optional[pd.DataFrame] = None, 
-        items_df: Optional[pd.DataFrame] = None, 
-        args=None
-    ):
-        super().__init__(sampling_df, base_df, users_df, items_df, args)
-        self.source_prompter = SourcePrompter(self.args)
-        self.target_former = TargetFormer(self.args)
+    def __init__(self, text_df: pd.DataFrame):
+        super().__init__()
+        self.text_df = text_df
 
+    def __len__(self) -> int:
+        return len(self.text_df)
 
     def __getitem__(self, index: int) -> Any:
-        sample = super().__getitem__(index)
-        source_text = self.source_prompter.prompt(sample)
-        target_text = self.target_former.format(sample)
+        item = self.text_df.iloc[index]
         return {
-            "source_text": source_text,
-            "target_text": target_text,
-            "review": sample["review"],
-            "rating": sample["rating"]
+            "source_text": item["source"],
+            "target_text": item["target"],
+            "review": item["review"],
+            "rating": item["rating"]
         }
+    

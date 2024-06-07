@@ -358,10 +358,14 @@ class SourcePrompter:
         return prompt
     
     
-    def prompt(self, sample):
+    def prompt(self, sample: dict) -> str:
         if self.args.n_samples == 0:
             return self.zero_shot_prompt(sample)
         return self.few_shot_prompt(sample)
+    
+
+    def __call__(self, sample: dict) -> str:
+        return self.prompt(sample)
 
 
 class TargetFormer:
@@ -374,7 +378,7 @@ class TargetFormer:
     def __init__(self, args):
         self.args = args
 
-    def format(self, sample):
+    def format(self, sample: dict) -> str:
         review, rating = sample["review"], sample["rating"]
         if self.args.target_review_flag and self.args.target_rating_flag:
             target = f"{review} | {rating}"
@@ -385,6 +389,9 @@ class TargetFormer:
         else:
             target = ""
         return target
+    
+    def __call__(self, sample: dict) -> str:
+        return self.format(sample)
     
     @classmethod
     def get_review_rating(cls, output: str) -> tuple:
