@@ -31,26 +31,7 @@ class DataSplitter:
         self.split_method = SplitMethod(self.args.split_method)
 
 
-    def filter_min_examples(self, data_df: pd.DataFrame, n_examples: int=1):
-        all_users = data_df[self.args.user_id_column].value_counts()
-        selected_users = all_users[all_users.values > n_examples]
-
-        all_items = data_df[self.args.item_id_column].value_counts()
-        selected_items = all_items[all_items.values > n_examples]
-
-        filtered_df = data_df[data_df[self.args.user_id_column].isin(selected_users.index)]
-        filtered_df = filtered_df[filtered_df[self.args.item_id_column].isin(selected_items.index)]
-        return filtered_df
-
-
-    def split(
-        self, 
-        data_df: pd.DataFrame, 
-        filter_min_examples_flag: bool=True
-    ) -> Dict:
-        if filter_min_examples_flag:
-            data_df = self.filter_min_examples(data_df, self.args.n_reviews)
-
+    def split(self, data_df: pd.DataFrame) -> Dict:
         base_df = data_df.sample(
             frac=self.args.base_data_size, 
             random_state=self.args.random_state
@@ -67,8 +48,6 @@ class DataSplitter:
 
     
     def train_test_split(self, data_df: pd.DataFrame) -> Dict:
-        data_df = self.filter_min_examples(data_df, self.args.n_reviews)
-        
         if self.split_method is SplitMethod.USER_BASED:
             users = data_df[self.args.user_id_column].unique()
             n_users = len(users)
@@ -111,8 +90,8 @@ class DataSplitter:
             test_df = data_df.drop(train_df.index)
 
         return {
-            "train": self.split(train_df, False),
-            "test": self.split(test_df, False)
+            "train": self.split(train_df),
+            "test": self.split(test_df)
         }
     
 
@@ -384,9 +363,6 @@ class DatasetCreator:
                 self._zero_shot_add(index)
             else:
                 self._few_shot_add(index)
-
-        if self.args.save_data_flag:
-            self.save_data(self.args.save_data_dir)
 
 
     def get_sampled_df(self) -> pd.DataFrame:

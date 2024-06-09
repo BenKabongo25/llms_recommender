@@ -7,7 +7,9 @@
 import argparse
 import json
 import os
+import numpy as np
 import pandas as pd
+import random
 import sys
 import time
 import torch
@@ -161,44 +163,33 @@ def get_prompt_model(args):
         return T5PromptModel(model, tokenizer, args)
     
     return None
-    
-    
-def main(args):
-    id = int(time.time())
 
-    if args.dataset_dir == "":
-        args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
 
+def get_text_data(args):
     if args.text_data_path != "":
         text_df = pd.read_csv(args.text_data_path)
     
     else:
         if args.dataset_path == "":
             args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
-        data_df = pd.read_csv(args.dataset_path, index_col=0)
+        data_df = pd.read_csv(args.dataset_path)
 
         spliter = DataSplitter(args)
         data_split = spliter.split(data_df)
         sampling_df, base_df = data_split["sampling"], data_split["base"]
 
+        metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
         users_df = None
         if args.user_description_flag:
             if args.users_path == "":
-                args.users_path = os.path.join(args.dataset_dir, "users.csv")
-            users_df = pd.read_csv(args.users_path, index_col=0)
+                args.users_path = os.path.join(metadata_dir, "users.csv")
+            users_df = pd.read_csv(args.users_path)
 
         items_df = None
         if args.item_description_flag:
             if args.items_path == "":
-                args.items_path = os.path.join(args.dataset_dir, "items.csv")
-            items_df = pd.read_csv(args.items_path, index_col=0)
-
-        if args.save_data_dir == "":
-            args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(id))
-            os.makedirs(args.save_data_dir, exist_ok=True)
-            args_file_path = os.path.join(args.save_data_dir, "args.json")
-            with open(args_file_path, "w") as args_file:
-                json.dump(vars(args), args_file)
+                args.items_path = os.path.join(metadata_dir, "items.csv")
+            items_df = pd.read_csv(args.items_path)
 
         creator = DatasetCreator(
             sampling_df=sampling_df,
@@ -210,6 +201,29 @@ def main(args):
         creator.create_dataset()
         text_df = creator.get_text_df()
 
+        if args.save_data_flag:
+            if args.save_data_dir == "":
+                args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))
+                os.makedirs(args.save_data_dir, exist_ok=True)
+                args_file_path = os.path.join(args.save_data_dir, "args.json")
+                with open(args_file_path, "w") as args_file:
+                    json.dump(vars(args), args_file)
+            os.makedirs(args.save_data_dir, exist_ok=True)
+            creator.save_data(args.save_data_dir)
+
+    return text_df
+    
+    
+def main(args):
+    args.time_id = int(time.time())
+    random.seed(args.random_state)
+    np.random.seed(args.random_state)
+    torch.manual_seed(args.random_state)
+
+    if args.dataset_dir == "":
+        args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
+
+    text_df = get_text_data(args)
     dataset = TextDataset(text_df)
     dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
@@ -219,7 +233,7 @@ def main(args):
         args.exp_name = (
             f"{args.model_name_or_path}_prompting_" +
             f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
-            f"{args.sampling_method}_sampling_{id}"
+            f"{args.sampling_method}_sampling_{args.time_id}"
         )
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
@@ -271,21 +285,18 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    # Model
     parser.add_argument("--model_name_or_path", type=str, default="google/flan-t5-base")
     parser.add_argument("--tokenizer_name_or_path", type=str, default="google/flan-t5-base")
     parser.add_argument("--max_source_length", type=int, default=1024)
     parser.add_argument("--max_target_length", type=int, default=128)
 
-    # base
     parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_processed")
     parser.add_argument("--dataset_name", type=str, default="All_Beauty")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--users_path", type=str, default="")
     parser.add_argument("--items_path", type=str, default="")
-    parser.add_argument("--text_data_path", type=str, 
-                        default="Datasets\\AmazonReviews2023_processed\\All_Beauty\samples\\1717749805\\text_data.csv")
+    parser.add_argument("--text_data_path", type=str, default="")
     parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(save_data_flag=True)
     parser.add_argument("--save_data_dir", type=str, default="")
@@ -298,7 +309,7 @@ if __name__ == "__main__":
     parser.add_argument("--evaluate_every", type=int, default=10)
 
     parser.add_argument("--base_data_size", type=float, default=0.25)
-    parser.add_argument("--max_base_data_samples", type=int, default=2_000)
+    parser.add_argument("--max_base_data_samples", type=int, default=1_000_000)
     parser.add_argument("--split_method", type=int, default=0)
     parser.add_argument("--sampling_method", type=int, default=1)
     parser.add_argument("--similarity_function", type=int, default=0)

@@ -94,6 +94,12 @@ class MLPRecommender(nn.Module):
         embeddings = torch.cat([user_embeddings, item_embeddings], dim=1)
         out = self.model(embeddings)
         return out
+    
+    def save(self, model_path: str):
+        torch.save(self.state_dict(), model_path)
+
+    def load(self, model_path: str):
+        self.load_state_dict(torch.load(model_path))
 
 
 def process_data(data_df: pd.DataFrame, args=None):
@@ -141,6 +147,8 @@ def train(model, optimizer, dataloader, loss_fn, args):
 
         if args.do_classification:
             R_hat = R_hat.argmax(dim=1)
+            R_hat = args.min_rating + R_hat
+
         references.extend(R.cpu().detach().tolist())
         predictions.extend(R_hat.cpu().detach().tolist())
 
@@ -183,6 +191,7 @@ def test(model, dataloader, loss_fn, args):
             if args.do_classification:
                 R_hat = R_hat.argmax(dim=1)
                 R_hat = args.min_rating + R_hat
+                
             references.extend(R.cpu().detach().tolist())
             predictions.extend(R_hat.cpu().detach().tolist())
 
@@ -223,9 +232,11 @@ def trainer(model, train_dataloader, test_dataloader, args):
     for epoch in progress_bar:
         train_epoch_infos = train(model, optimizer, train_dataloader, loss_fn, args)
         test_epoch_infos = test(model, test_dataloader, loss_fn, args)
+
         for metric in train_infos:
             train_infos[metric].append(train_epoch_infos[metric])
             test_infos[metric].append(test_epoch_infos[metric])
+
         progress_bar.set_description(
             f"[{epoch} / {args.n_epochs}] " +
             f"RMSE: train={train_epoch_infos['RMSE']:.4f} test={test_epoch_infos['RMSE']:.4f} " +
@@ -235,6 +246,9 @@ def trainer(model, train_dataloader, test_dataloader, args):
         results = {"train": train_infos, "test": test_infos}
         with open(args.res_file_path, "w") as res_file:
             json.dump(results, res_file)
+
+        if epoch % args.save_every == 0:
+            model.save(args.model_path)
 
     return train_infos, test_infos
 
@@ -270,7 +284,7 @@ def main(args):
 
     n_classes = 1
     if args.do_classification:
-        n_classes = int(args.max_rating)
+        n_classes = int(args.max_rating - args.min_rating + 1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
@@ -283,6 +297,8 @@ def main(args):
         n_classes=n_classes
     )
     model.to(args.device)
+    if args.model_path != "":
+        model.load(args.model_path)
 
     if args.exp_name == "":
         args.exp_name = f"mlp_{int(time.time())}"
@@ -291,6 +307,9 @@ def main(args):
     os.makedirs(exp_dir, exist_ok=True)
     args.log_file_path = os.path.join(exp_dir, "log.txt")
     args.res_file_path = os.path.join(exp_dir, "res.json")
+
+    if args.model_path == "":
+        args.model_path = os.path.join(exp_dir, "model.pth")
 
     if args.verbose:
         log = (
@@ -340,6 +359,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--model_path", type=str, default="")
+    parser.add_argument("--save_every", type=int, default=10)
 
     parser.add_argument("--user_id_column", type=str, default="user_id")
     parser.add_argument("--item_id_column", type=str, default="item_id")

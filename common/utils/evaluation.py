@@ -61,7 +61,7 @@ def ratings_evaluation(predictions: List[float], references: List[float], args) 
     predictions = np.array(numerical_predictions, dtype=float)
     references = np.array(numerical_references, dtype=float)
 
-    mean_rating = (args.min_rating + args.max_rating) / 2
+    mean_rating = np.ceil((args.min_rating + args.max_rating) / 2)
     binary_predictions = np.where(predictions > mean_rating, 1, 0)
     binary_references = np.where(references > mean_rating, 1, 0)
 
