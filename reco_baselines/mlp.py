@@ -121,7 +121,8 @@ def process_data(data_df: pd.DataFrame, args=None):
         lambda i: to_vocab_id(i, items_vocab)
     )
     if args.do_classification:
-        data_df[args.rating_column] = data_df[args.rating_column].apply(int)
+        rating_fn = lambda r: int(r - args.min_rating)
+        data_df[args.rating_column] = data_df[args.rating_column].apply(rating_fn)
     return data_df, users_vocab, items_vocab
 
 
@@ -147,7 +148,6 @@ def train(model, optimizer, dataloader, loss_fn, args):
 
         if args.do_classification:
             R_hat = R_hat.argmax(dim=1)
-            R_hat = args.min_rating + R_hat
 
         references.extend(R.cpu().detach().tolist())
         predictions.extend(R_hat.cpu().detach().tolist())
@@ -190,8 +190,7 @@ def test(model, dataloader, loss_fn, args):
 
             if args.do_classification:
                 R_hat = R_hat.argmax(dim=1)
-                R_hat = args.min_rating + R_hat
-                
+
             references.extend(R.cpu().detach().tolist())
             predictions.extend(R_hat.cpu().detach().tolist())
 
@@ -260,10 +259,10 @@ def main(args):
         args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
         
     if args.train_dataset_path != "" and args.test_dataset_path != "":
-        train_df = pd.read_csv(args.train_dataset_path, index_col=0).dropna()
-        test_df = pd.read_csv(args.test_dataset_path, index_col=0).dropna()
+        train_df = pd.read_csv(args.train_dataset_path)
+        test_df = pd.read_csv(args.test_dataset_path)
     elif args.dataset_path != "":
-        data_df = pd.read_csv(args.dataset_path, index_col=0).dropna()
+        data_df = pd.read_csv(args.dataset_path)
         train_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
         test_df = data_df.drop(train_df.index)
     else:

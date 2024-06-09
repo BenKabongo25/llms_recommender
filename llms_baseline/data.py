@@ -13,8 +13,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from prompters import SourcePrompter, TargetFormer
-from sampler import Sampler, SamplingMethod
-from similarities import SimilarityFunction
+from sampler import Sampler, SamplingMethod, SimilarityFunction
 
 
 class SplitMethod(enum.Enum):

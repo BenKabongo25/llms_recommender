@@ -14,6 +14,7 @@ import sys
 import time
 import torch
 import torch.nn as nn
+import warnings
 
 from sklearn import metrics
 from torch.utils.data import DataLoader, Dataset
@@ -25,6 +26,7 @@ from data import DatasetCreator, DataSplitter
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
+warnings.filterwarnings(action="ignore")
 
 from common.utils.evaluation import ratings_evaluation
 
@@ -108,7 +110,6 @@ def train(model, optimizer, dataloader, loss_fn, args):
 
         if args.do_classification:
             R_hat = R_hat.argmax(dim=1)
-            R_hat = args.min_rating + R_hat
 
         references.extend(R.cpu().detach().tolist())
         predictions.extend(R_hat.cpu().detach().tolist())
@@ -160,7 +161,6 @@ def test(model, dataloader, loss_fn, args):
 
             if args.do_classification:
                 R_hat = R_hat.argmax(dim=1)
-                R_hat = args.min_rating + R_hat
                 
             references.extend(R.cpu().detach().tolist())
             predictions.extend(R_hat.cpu().detach().tolist())
@@ -308,8 +308,9 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
             test_creator.save_data(test_save_dir)
 
     if args.do_classification:
-        train_df["rating"] = train_df["rating"].apply(int)
-        test_df["rating"] = test_df["rating"].apply(int)
+        rating_fn = lambda x: int(x - args.min_rating)
+        train_df["rating"] = train_df["rating"].apply(rating_fn)
+        test_df["rating"] = test_df["rating"].apply(rating_fn)
 
     return train_df, test_df
 

@@ -89,28 +89,39 @@ class MFRecommender:
 
 
 def main(args):
+    args.time_id = int(time.time())
     random.seed(args.random_state)
     np.random.seed(args.random_state)
 
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
-    if args.dataset_path == "":
-        args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
+    
+    if args.train_dataset_path != "" and args.test_dataset_path != "":
+        train_df = pd.read_csv(args.train_dataset_path)
+        test_df = pd.read_csv(args.test_dataset_path)
+        train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+        test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+        reader = Reader(rating_scale=(args.min_rating, args.max_rating))
+        trainset = Dataset.load_from_df(train_df, reader).build_full_trainset()
+        testset = Dataset.load_from_df(test_df, reader).build_full_trainset().build_testset()
 
-    data_df = pd.read_csv(args.dataset_path, index_col=0).dropna()
-    data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-    reader = Reader(rating_scale=(args.min_rating, args.max_rating))
-    dataset = Dataset.load_from_df(data_df, reader)
-    trainset, testset = train_test_split(
-        dataset, 
-        train_size=args.train_size, 
-        random_state=args.random_state
-    )
+    else:
+        if args.dataset_path == "":
+            args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
+        data_df = pd.read_csv(args.dataset_path)
+        data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+        reader = Reader(rating_scale=(args.min_rating, args.max_rating))
+        dataset = Dataset.load_from_df(data_df, reader)
+        trainset, testset = train_test_split(
+            dataset, 
+            train_size=args.train_size, 
+            random_state=args.random_state
+        )
 
     model = MFRecommender(args)
 
     if args.exp_name == "":
-        args.exp_name = f"mf_{args.algo}_{int(time.time())}"
+        args.exp_name = f"mf_{args.algo}_{args.time_id}"
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
     exp_dir = os.path.join(exps_base_dir, args.exp_name)
     os.makedirs(exp_dir, exist_ok=True)
