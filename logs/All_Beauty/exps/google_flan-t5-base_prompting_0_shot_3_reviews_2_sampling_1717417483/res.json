@@ -1,1 +1,0 @@
-{"reviews": {}, "ratings": {"n_examples": 2000, "n_non_numerical": 0, "rmse": 3.019043722770507, "mae": 2.56275, "precision": 0.37, "recall": 0.25238397965670695, "f1": 0.3865628042843233, "auc": 0.5278313340906485, "non_numerical_examples": []}}

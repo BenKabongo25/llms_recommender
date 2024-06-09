@@ -56,14 +56,14 @@ class T5MLPRecommender(nn.Module):
         self.tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
 
         self.model.classification_head = nn.Sequential(
-            nn.Linear(512, 128),
+            nn.Linear(self.model.config.d_model, 128),
             nn.ReLU(),
             nn.Linear(128, 32),
             nn.ReLU(),
             nn.Linear(32, n_classes)
         )
-        for param in self.parameters():
-            param.requires_grad = False
+        #for param in self.parameters():
+        #    param.requires_grad = False
         self.model.classification_head.requires_grad = True
 
     def forward(self, input_ids, attention_mask):
