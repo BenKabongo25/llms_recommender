@@ -357,7 +357,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
-    parser.add_argument("--exp_name", type=str, default="test")
+    parser.add_argument("--exp_name", type=str, default="")
     
     parser.add_argument("--embedding_dim", type=int, default=128)
     parser.add_argument("--padding_idx", type=int, default=0)
