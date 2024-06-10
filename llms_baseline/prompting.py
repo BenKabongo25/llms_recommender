@@ -171,7 +171,7 @@ def get_text_data(args):
     
     else:
         if args.dataset_path == "":
-            args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
+            args.dataset_path = os.path.join(args.dataset_dir, "samples", "splits", "seen", "test.csv")
         data_df = pd.read_csv(args.dataset_path)
 
         spliter = DataSplitter(args)
@@ -290,8 +290,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_source_length", type=int, default=1024)
     parser.add_argument("--max_target_length", type=int, default=128)
 
-    parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_processed")
-    parser.add_argument("--dataset_name", type=str, default="All_Beauty")
+    parser.add_argument("--base_dir", type=str, default="")
+    parser.add_argument("--dataset_name", type=str, default="")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--users_path", type=str, default="")

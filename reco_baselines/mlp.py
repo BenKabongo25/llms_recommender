@@ -7,8 +7,10 @@
 import argparse
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import pandas as pd
+import random
 import sys
 import time
 import torch
@@ -253,20 +255,30 @@ def trainer(model, train_dataloader, test_dataloader, args):
 
 
 def main(args):
+    args.time_id = int(time.time())
+    random.seed(args.random_state)
+    np.random.seed(args.random_state)
+    torch.manual_seed(args.random_state)
+
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
-    if args.dataset_path == "":
-        args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
-        
+    
+    if args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
+        seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
+        args.train_dataset_path = os.path.join(seen_dir, "train.csv")
+        args.test_dataset_path = os.path.join(seen_dir, "test.csv")
+
     if args.train_dataset_path != "" and args.test_dataset_path != "":
         train_df = pd.read_csv(args.train_dataset_path)
         test_df = pd.read_csv(args.test_dataset_path)
-    elif args.dataset_path != "":
+    else:
         data_df = pd.read_csv(args.dataset_path)
+        data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
         train_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
         test_df = data_df.drop(train_df.index)
-    else:
-        raise Exception("You must specifie dataset_path or train/test data paths!")
+    
+    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
 
     n_train = len(train_df)
     data_df = pd.concat([train_df, test_df])
@@ -300,7 +312,7 @@ def main(args):
         model.load(args.model_path)
 
     if args.exp_name == "":
-        args.exp_name = f"mlp_{int(time.time())}"
+        args.exp_name = f"mlp_{args.time_id}"
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
     exp_dir = os.path.join(exps_base_dir, args.exp_name)
     os.makedirs(exp_dir, exist_ok=True)
@@ -315,6 +327,7 @@ def main(args):
             f"Task: Rating prediction\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
+            f"Arguments:\n{args}\n\n" +
             f"Data:\n{data_df.head(5)}\n\n"
         )
         print("\n" + log)
