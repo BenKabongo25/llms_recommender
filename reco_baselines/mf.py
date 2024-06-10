@@ -95,28 +95,26 @@ def main(args):
 
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
-    
+
+    if args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
+        seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
+        args.train_dataset_path = os.path.join(seen_dir, "train.csv")
+        args.test_dataset_path = os.path.join(seen_dir, "test.csv")
+
     if args.train_dataset_path != "" and args.test_dataset_path != "":
         train_df = pd.read_csv(args.train_dataset_path)
         test_df = pd.read_csv(args.test_dataset_path)
-        train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-        test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-        reader = Reader(rating_scale=(args.min_rating, args.max_rating))
-        trainset = Dataset.load_from_df(train_df, reader).build_full_trainset()
-        testset = Dataset.load_from_df(test_df, reader).build_full_trainset().build_testset()
-
     else:
-        if args.dataset_path == "":
-            args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
         data_df = pd.read_csv(args.dataset_path)
         data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-        reader = Reader(rating_scale=(args.min_rating, args.max_rating))
-        dataset = Dataset.load_from_df(data_df, reader)
-        trainset, testset = train_test_split(
-            dataset, 
-            train_size=args.train_size, 
-            random_state=args.random_state
-        )
+        train_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
+        test_df = data_df.drop(train_df.index)
+    
+    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+    reader = Reader(rating_scale=(args.min_rating, args.max_rating))
+    trainset = Dataset.load_from_df(train_df, reader).build_full_trainset()
+    testset = Dataset.load_from_df(test_df, reader).build_full_trainset().build_testset()
 
     model = MFRecommender(args)
 
@@ -133,13 +131,12 @@ def main(args):
             f"Task: Rating prediction\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Algo: {args.algo}\n\n" +
-            f"Data:\n{data_df.head(5)}\n\n"
+            f"Arguments:\n{args}\n\n" +
+            f"Data:\n{train_df.head(5)}\n\n"
         )
         print("\n" + log)
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
-
-        print("Training ...")
 
     model.train(trainset)
     train_results = model.evaluate(trainset)
@@ -159,7 +156,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--algo", type=str, default="svd") # svd, svd++, nmf
     parser.add_argument("--n_factors", type=int, default=100)
-    parser.add_argument("--n_epochs", type=int, default=20)
+    parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--biased", action=argparse.BooleanOptionalAction)
     parser.set_defaults(biased=True)
     parser.add_argument("--lr_all", type=float, default=0.005)

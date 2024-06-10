@@ -232,23 +232,21 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
 
     if args.train_text_data_path != "" and args.test_text_data_path != "":
-        train_df = pd.read_csv(args.train_text_data_path).dropna()
-        test_df = pd.read_csv(args.test_text_data_path).dropna()
+        train_df = pd.read_csv(args.train_text_data_path)
+        test_df = pd.read_csv(args.test_text_data_path)
     
     else:
-        if args.train_dataset_path == "" or args.test_dataset_path == "":
+        if  args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
             seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
             args.train_dataset_path = os.path.join(seen_dir, "train.csv")
             args.test_dataset_path = os.path.join(seen_dir, "test.csv")
 
         if args.train_dataset_path != "" and args.test_dataset_path != "":
-            train_data_df = pd.read_csv(args.train_dataset_path).dropna()
-            test_data_df = pd.read_csv(args.test_dataset_path).dropna()
+            train_data_df = pd.read_csv(args.train_dataset_path)
+            test_data_df = pd.read_csv(args.test_dataset_path)
         
         else:
-            if args.dataset_path == "":
-                args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
-            data_df = pd.read_csv(args.dataset_path).dropna()
+            data_df = pd.read_csv(args.dataset_path)
             train_data_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
             test_data_df = data_df.drop(train_data_df.index)
 
@@ -365,6 +363,7 @@ def main(args):
             f"Task: Rating prediction\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
+            f"Arguments:\n{args}\n\n" +
             f"Data:\n{train_df.head(5)}\n\n"
         )
         print("\n" + log)
