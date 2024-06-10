@@ -85,7 +85,7 @@ class MLPRecommender(nn.Module):
             hiddens_layers.append(nn.Linear(in_features, out_features))
             hiddens_layers.append(nn.ReLU())
             in_features = out_features
-            out_features = out_features // 2
+            out_features = out_features // 4
         output_layer = nn.Linear(in_features, self.n_classes)
         layers = [*hiddens_layers, output_layer]
         self.model = nn.Sequential(*layers)
@@ -97,11 +97,18 @@ class MLPRecommender(nn.Module):
         out = self.model(embeddings)
         return out
     
-    def save(self, model_path: str):
-        torch.save(self.state_dict(), model_path)
+    def save(self, save_model_path: str):
+        torch.save(self.state_dict(), save_model_path)
 
-    def load(self, model_path: str):
-        self.load_state_dict(torch.load(model_path))
+    def load(self, save_model_path: str):
+        self.load_state_dict(torch.load(save_model_path))
+
+
+def create_vocab_from_metadata(metadata_df: pd.DataFrame, element_column: str) -> Vocabulary:
+    elements = metadata_df[element_column].unique()
+    vocab = Vocabulary()
+    vocab.add_elements(elements)
+    return vocab
 
 
 def process_data(data_df: pd.DataFrame, args=None):
@@ -249,20 +256,12 @@ def trainer(model, train_dataloader, test_dataloader, args):
             json.dump(results, res_file)
 
         if epoch % args.save_every == 0:
-            model.save(args.model_path)
+            model.save(args.save_model_path)
 
     return train_infos, test_infos
 
 
-def main(args):
-    args.time_id = int(time.time())
-    random.seed(args.random_state)
-    np.random.seed(args.random_state)
-    torch.manual_seed(args.random_state)
-
-    if args.dataset_dir == "":
-        args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
-    
+def main_train_test(args):
     if args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
         seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
         args.train_dataset_path = os.path.join(seen_dir, "train.csv")
@@ -308,8 +307,8 @@ def main(args):
         n_classes=n_classes
     )
     model.to(args.device)
-    if args.model_path != "":
-        model.load(args.model_path)
+    if args.save_model_path != "":
+        model.load(args.save_model_path)
 
     if args.exp_name == "":
         args.exp_name = f"mlp_{args.time_id}"
@@ -319,8 +318,8 @@ def main(args):
     args.log_file_path = os.path.join(exp_dir, "log.txt")
     args.res_file_path = os.path.join(exp_dir, "res.json")
 
-    if args.model_path == "":
-        args.model_path = os.path.join(exp_dir, "model.pth")
+    if args.save_model_path == "":
+        args.save_model_path = os.path.join(exp_dir, "model.pth")
 
     if args.verbose:
         log = (
@@ -348,6 +347,25 @@ def main(args):
         plt.savefig(os.path.join(exp_dir, metric.lower() + ".png"))
 
 
+def main_test(args):
+    # TODO: Implement test function
+    pass
+
+def main(args):
+    args.time_id = int(time.time())
+    random.seed(args.random_state)
+    np.random.seed(args.random_state)
+    torch.manual_seed(args.random_state)
+
+    if args.dataset_dir == "":
+        args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
+    
+    if args.train_flag:
+        main_train_test(args)
+    else:
+        main_test(args)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -357,7 +375,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
-    parser.add_argument("--exp_name", type=str, default="test")
+    parser.add_argument("--exp_name", type=str, default="")
     
     parser.add_argument("--embedding_dim", type=int, default=128)
     parser.add_argument("--padding_idx", type=int, default=0)
@@ -371,7 +389,10 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
     parser.add_argument("--lr", type=float, default=0.001)
-    parser.add_argument("--model_path", type=str, default="")
+    
+    parser.add_argument("--train_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(train_flag=True)
+    parser.add_argument("--save_model_path", type=str, default="")
     parser.add_argument("--save_every", type=int, default=10)
 
     parser.add_argument("--user_id_column", type=str, default="user_id")

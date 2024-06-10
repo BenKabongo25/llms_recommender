@@ -3,6 +3,7 @@
 
 # Common - Vocabulary
 
+import json
 from tqdm import tqdm
 from typing import *
 
@@ -38,3 +39,14 @@ class Vocabulary:
     
     def elements2ids(self, elements: List[Union[int, float, str]]) -> List[int]:
         return [self._elements2ids[element] for element in elements]
+
+    def save(self, path: str):
+        with open(path, "w") as f:
+            json.dump({"elements2ids": self._elements2ids, "ids2elements": self._ids2elements, "n_elements": self.n_elements}, f)
+
+    def load(self, path: str):
+        with open(path, "r") as f:
+            data = json.load(f)
+            self._elements2ids = data["elements2ids"]
+            self._ids2elements = data["ids2elements"]
+            self.n_elements = data["n_elements"]
