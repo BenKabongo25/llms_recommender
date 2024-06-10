@@ -339,7 +339,7 @@ def main_train_test(args):
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
-            f"Data:\n{train.head(5)}\n\n"
+            f"Data:\n{train_df.head(5)}\n\n"
         )
         print("\n" + log)
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:

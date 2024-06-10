@@ -15,21 +15,6 @@ from common.utils.preprocess_text import preprocess_text
 
 
 class SourcePrompter:
-    """
-    Args:
-        - n_samples: int
-            0 for zero-shot, >= 1 for few-shot
-        - min_rating: int
-        - max_rating: int
-        - user_description_flag: bool
-        - item_description_flag: bool
-        - source_review_flag: bool
-        - source_rating_flag: bool
-        - user_first_flag: bool
-        - user_only_flag : bool
-        - target_review_flag: bool
-        - target_rating_flag: bool
-    """
 
     def __init__(self, args):
         self.args = args
@@ -369,11 +354,6 @@ class SourcePrompter:
 
 
 class TargetFormer:
-    """
-    Args:
-        - target_review_flag: bool
-        - target_rating_flag: bool
-    """
 
     def __init__(self, args):
         self.args = args
