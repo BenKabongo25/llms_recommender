@@ -66,16 +66,16 @@ class T5MLPRecommender(nn.Module):
         )
         #for param in self.parameters():
         #    param.requires_grad = False
-        self.model.classification_head.requires_grad = True
+        #self.model.classification_head.requires_grad = True
 
     def forward(self, input_ids, attention_mask):
         return self.model(input_ids=input_ids, attention_mask=attention_mask).logits
     
-    def save_classifier(self, path: str):
-        torch.save(self.model.classification_head.state_dict(), path)
+    def save(self, path: str):
+        torch.save(self.model.state_dict(), path)
 
-    def load_classifier(self, path: str):
-        self.model.classification_head.load_state_dict(torch.load(path))
+    def load(self, path: str):
+        self.model.load_state_dict(torch.load(path))
 
 
 def train(model, optimizer, dataloader, loss_fn, args):
@@ -218,19 +218,12 @@ def trainer(model, train_dataloader, test_dataloader, args):
             json.dump(results, res_file)
 
         if epoch % args.save_every == 0:
-            model.save_classifier(args.model_classifier_path)
+            model.save(args.save_model_path)
 
     return train_infos, test_infos
 
 
 def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    random.seed(args.random_state)
-    np.random.seed(args.random_state)
-    torch.manual_seed(args.random_state)
-
-    if args.dataset_dir == "":
-        args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
-
     if args.train_text_data_path != "" and args.test_text_data_path != "":
         train_df = pd.read_csv(args.train_text_data_path)
         test_df = pd.read_csv(args.test_text_data_path)
@@ -313,12 +306,7 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
     return train_df, test_df
 
 
-def main(args):
-    args.time_id = int(time.time())
-    random.seed(args.random_state)
-    np.random.seed(args.random_state)
-    torch.manual_seed(args.random_state)
-
+def main_train_test(args):
     train_df, test_df = get_train_test_data(args)
 
     train_dataset = TextRatingDataset(train_df, args)
@@ -336,8 +324,8 @@ def main(args):
 
     model = T5MLPRecommender(n_classes, args)
     model.to(args.device)
-    if args.model_classifier_path != "":
-        model.load_classifier(args.model_classifier_path)
+    if args.save_model_path != "":
+        model.load(args.save_model_path)
 
     if args.exp_name == "":
         args.exp_name = (
@@ -353,8 +341,8 @@ def main(args):
     args.log_file_path = os.path.join(exp_dir, "log.txt")
     args.res_file_path = os.path.join(exp_dir, "res.json")
 
-    if args.model_classifier_path == "":
-        args.model_classifier_path = os.path.join(exp_dir, "model_classifier.pth")
+    if args.save_model_path == "":
+        args.save_model_path = os.path.join(exp_dir, "model.pth")
 
     if args.verbose:
         log = (
@@ -384,6 +372,146 @@ def main(args):
         plt.savefig(os.path.join(exp_dir, metric.lower() + ".png"))
 
 
+def get_test_data(args: Any) -> pd.DataFrame:
+    if args.test_text_data_path != "":
+        test_df = pd.read_csv(args.test_text_data_path)
+        return test_df
+
+    else:    
+        if args.test_dataset_path == "":
+            seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
+            args.test_dataset_path = os.path.join(seen_dir, "test.csv")
+
+        test_data_df = pd.read_csv(args.test_dataset_path)
+            
+        metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
+        users_df = None
+        if args.user_description_flag:
+            if args.users_path == "":
+                args.users_path = os.path.join(metadata_dir, "users.csv")
+            users_df = pd.read_csv(args.users_path)
+
+        items_df = None
+        if args.item_description_flag:
+            if args.items_path == "":
+                args.items_path = os.path.join(metadata_dir, "items.csv")
+            items_df = pd.read_csv(args.items_path)
+
+        spliter = DataSplitter(args)
+        test_split = spliter.split(test_data_df)
+
+        test_creator = DatasetCreator(      
+            sampling_df=test_split["sampling"],
+            base_df=test_split["base"],
+            users_df=users_df,
+            items_df=items_df,
+            args=args
+        )
+        test_creator.create_dataset()
+        test_df = test_creator.get_text_df()
+
+    if args.save_data_flag:
+        if args.save_data_dir == "":
+            args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))
+            os.makedirs(args.save_data_dir, exist_ok=True)
+            args_file_path = os.path.join(args.save_data_dir, "args.json")
+            with open(args_file_path, "w") as args_file:
+                json.dump(vars(args), args_file)
+
+        test_save_dir = os.path.join(args.save_data_dir, "test")
+        os.makedirs(args.save_data_dir, exist_ok=True)
+        os.makedirs(test_save_dir, exist_ok=True)
+        test_creator.save_data(test_save_dir)
+
+    if args.do_classification:
+        rating_fn = lambda x: int(x - args.min_rating)
+        test_df["rating"] = test_df["rating"].apply(rating_fn)
+
+    return test_df
+
+
+def main_test(args):
+    test_df = get_test_data(args)
+
+    test_dataset = TextRatingDataset(test_df, args)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+
+    n_classes = 1
+    if args.do_classification:
+        n_classes = int(args.max_rating - args.min_rating + 1)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    args.device = device
+
+    model = T5MLPRecommender(n_classes, args)
+    model.to(args.device)
+    if args.save_model_path != "":
+        model.load(args.save_model_path)
+
+    if args.exp_name == "":
+        args.exp_name = (
+            f"eval_{args.model_name_or_path}_mlp_" +
+            f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
+            f"{args.sampling_method}_sampling_{args.time_id}"
+        )
+    
+    args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
+    exps_base_dir = os.path.join(args.dataset_dir, "exps")
+    exp_dir = os.path.join(exps_base_dir, args.exp_name)
+    os.makedirs(exp_dir, exist_ok=True)
+    args.log_file_path = os.path.join(exp_dir, "log.txt")
+    args.res_file_path = os.path.join(exp_dir, "res.json")
+
+    if args.save_model_path == "":
+        args.save_model_path = os.path.join(exp_dir, "model.pth")
+
+    if args.verbose:
+        log = (
+            f"Model: {args.model_name_or_path}\n" +
+            f"Tokenizer: {args.tokenizer_name_or_path}\n" +
+            f"Task: Rating prediction\n" +
+            f"Dataset: {args.dataset_name}\n" +
+            f"Device: {device}\n\n" +
+            f"Arguments:\n{args}\n\n" +
+            f"Data:\n{test.head(5)}\n\n"
+        )
+        print("\n" + log)
+        with open(args.log_file_path, "w", encoding="utf-8") as log_file:
+            log_file.write(log)
+
+    if args.do_classification:
+        loss_fn = nn.CrossEntropyLoss()
+    else:
+        loss_fn = nn.MSELoss()
+
+    test_results = test(model, test_dataloader, loss_fn, args)
+    results = {"train": {}, "test": test_results}
+    with open(args.res_file_path, "w") as res_file:
+        json.dump(results, res_file)
+
+    log = "Test Results:\n"
+    for metric, value in test_results.items():
+        log += f"{metric}: {value}\n"
+    print(log)
+    with open(args.log_file_path, "a", encoding="utf-8") as log_file:
+        log_file.write(log)
+
+
+def main(args):
+    args.time_id = int(time.time())
+    random.seed(args.random_state)
+    np.random.seed(args.random_state)
+    torch.manual_seed(args.random_state)
+
+    if args.dataset_dir == "":
+        args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
+
+    if args.train_flag:
+        main_train_test(args)
+    else:
+        main_test(args)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -392,8 +520,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_source_length", type=int, default=1024)
     parser.add_argument("--max_target_length", type=int, default=128)
 
-    parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_processed")
-    parser.add_argument("--dataset_name", type=str, default="All_Beauty")
+    parser.add_argument("--base_dir", type=str, default="")
+    parser.add_argument("--dataset_name", type=str, default="")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
@@ -404,6 +532,8 @@ if __name__ == "__main__":
     parser.add_argument("--train_text_data_path", type=str, default="")
     parser.add_argument("--test_text_data_path", type=str, default="")
 
+    parser.add_argument("--train_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(train_flag=True)
     parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(save_data_flag=False)
     parser.add_argument("--save_data_dir", type=str, default="")
@@ -420,8 +550,8 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=0.001)
-    parser.add_argument("--model_classifier_path", type=str, default="")
     parser.add_argument("--save_every", type=int, default=10)
+    parser.add_argument("--save_model_path", type=str, default="")
 
     parser.add_argument("--base_data_size", type=float, default=0.25)
     parser.add_argument("--max_base_data_samples", type=int, default=1_000_000)
