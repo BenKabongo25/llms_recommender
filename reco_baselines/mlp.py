@@ -104,37 +104,6 @@ class MLPRecommender(nn.Module):
         self.load_state_dict(torch.load(save_model_path))
 
 
-def create_vocab_from_metadata(metadata_df: pd.DataFrame, element_column: str) -> Vocabulary:
-    elements = metadata_df[element_column].unique()
-    vocab = Vocabulary()
-    vocab.add_elements(elements)
-    return vocab
-
-
-def process_data(data_df: pd.DataFrame, args=None):
-    users = data_df[args.user_id_column].unique()
-    users_vocab = Vocabulary()
-    users_vocab.add_elements(users)
-
-    items = data_df[args.item_id_column].unique()
-    items_vocab = Vocabulary()
-    items_vocab.add_elements(items)
-
-    def to_vocab_id(element, vocabulary: Vocabulary) -> int:
-        return vocabulary.element2id(element)
-    
-    data_df[args.user_vocab_id_column] = data_df[args.user_id_column].apply(
-        lambda u: to_vocab_id(u, users_vocab)
-    )
-    data_df[args.item_vocab_id_column] = data_df[args.item_id_column].apply(
-        lambda i: to_vocab_id(i, items_vocab)
-    )
-    if args.do_classification:
-        rating_fn = lambda r: int(r - args.min_rating)
-        data_df[args.rating_column] = data_df[args.rating_column].apply(rating_fn)
-    return data_df, users_vocab, items_vocab
-
-
 def train(model, optimizer, dataloader, loss_fn, args):
     references = []
     predictions = []
@@ -221,13 +190,15 @@ def test(model, dataloader, loss_fn, args):
     }
 
 
+def get_loss_fn(args):
+    if args.do_classification:
+        return nn.CrossEntropyLoss(ignore_index=args.padding_idx)
+    return nn.MSELoss()
+
+
 def trainer(model, train_dataloader, test_dataloader, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
-    if args.do_classification:
-        loss_fn = nn.CrossEntropyLoss(ignore_index=args.padding_idx)
-    else:
-        loss_fn = nn.MSELoss()
+    loss_fn = get_loss_fn(args)
 
     train_infos = {
         "accuracy": [], "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
@@ -261,6 +232,17 @@ def trainer(model, train_dataloader, test_dataloader, args):
     return train_infos, test_infos
 
 
+def create_vocab_from_df(metadata_df: pd.DataFrame, element_column: str) -> Vocabulary:
+    elements = metadata_df[element_column].unique()
+    vocab = Vocabulary()
+    vocab.add_elements(elements)
+    return vocab
+
+
+def to_vocab_id(element, vocabulary: Vocabulary) -> int:
+    return vocabulary.element2id(element)
+
+
 def main_train_test(args):
     if args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
         seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
@@ -279,22 +261,52 @@ def main_train_test(args):
     train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
     test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
 
-    n_train = len(train_df)
-    data_df = pd.concat([train_df, test_df])
-    data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-    data_df, users_vocab, items_vocab = process_data(data_df, args)
+    metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
 
-    train_df = data_df.head(n_train)
-    train_dataset = RatingDataset(train_df, args)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    if args.users_vocab_path != "":
+        users_vocab = Vocabulary()
+        users_vocab.load(args.users_vocab_path)
+    else:
+        if args.users_path == "":
+            args.users_path = os.path.join(metadata_dir, "users.csv")
+        users_df = pd.read_csv(args.users_path)
+        users_vocab = create_vocab_from_df(users_df, args.user_id_column)
+        users_vocab.save(os.path.join(args.dataset_dir, "users_vocab.json"))
+    train_df[args.user_vocab_id_column] = train_df[args.user_id_column].apply(
+        lambda u: to_vocab_id(u, users_vocab)
+    )
+    test_df[args.user_vocab_id_column] = test_df[args.user_id_column].apply(
+        lambda u: to_vocab_id(u, users_vocab)
+    )
 
-    test_df = data_df.tail(len(data_df) - n_train)
-    test_dataset = RatingDataset(test_df, args)
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
+    if args.items_vocab_path != "":
+        items_vocab = Vocabulary()
+        items_vocab.load(args.items_vocab_path)
+    else:
+        if args.items_path == "":
+            args.items_path = os.path.join(metadata_dir, "items.csv")
+        items_df = pd.read_csv(args.items_path)
+        items_vocab = create_vocab_from_df(items_df, args.item_id_column)
+        items_vocab.save(os.path.join(args.dataset_dir, "items_vocab.json"))
+    train_df[args.item_vocab_id_column] = train_df[args.item_id_column].apply(
+        lambda i: to_vocab_id(i, items_vocab)
+    ) 
+    test_df[args.item_vocab_id_column] = test_df[args.item_id_column].apply(
+        lambda i: to_vocab_id(i, items_vocab)
+    )
+    
     n_classes = 1
     if args.do_classification:
         n_classes = int(args.max_rating - args.min_rating + 1)
+        rating_fn = lambda r: int(r - args.min_rating)
+        train_df[args.rating_column] = train_df[args.rating_column].apply(rating_fn)
+        test_df[args.rating_column] = test_df[args.rating_column].apply(rating_fn)
+
+    train_dataset = RatingDataset(train_df, args)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+
+    test_dataset = RatingDataset(test_df, args)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
@@ -327,7 +339,7 @@ def main_train_test(args):
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
-            f"Data:\n{data_df.head(5)}\n\n"
+            f"Data:\n{train.head(5)}\n\n"
         )
         print("\n" + log)
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
@@ -348,8 +360,97 @@ def main_train_test(args):
 
 
 def main_test(args):
-    # TODO: Implement test function
-    pass
+    if args.test_dataset_path == "":
+        seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
+        args.test_dataset_path = os.path.join(seen_dir, "test.csv")
+
+    test_df = pd.read_csv(args.test_dataset_path)
+    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+
+    metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
+
+    if args.users_vocab_path != "":
+        users_vocab = Vocabulary()
+        users_vocab.load(args.users_vocab_path)
+    else:
+        if args.users_path == "":
+            args.users_path = os.path.join(metadata_dir, "users.csv")
+        users_df = pd.read_csv(args.users_path)
+        users_vocab = create_vocab_from_df(users_df, args.user_id_column)
+        users_vocab.save(os.path.join(args.dataset_dir, "users_vocab.json"))
+    test_df[args.user_vocab_id_column] = test_df[args.user_id_column].apply(
+        lambda u: to_vocab_id(u, users_vocab)
+    )
+
+    if args.items_vocab_path != "":
+        items_vocab = Vocabulary()
+        items_vocab.load(args.items_vocab_path)
+    else:
+        if args.items_path == "":
+            args.items_path = os.path.join(metadata_dir, "items.csv")
+        items_df = pd.read_csv(args.items_path)
+        items_vocab = create_vocab_from_df(items_df, args.item_id_column)
+        items_vocab.save(os.path.join(args.dataset_dir, "items_vocab.json"))
+    test_df[args.item_vocab_id_column] = test_df[args.item_id_column].apply(
+        lambda i: to_vocab_id(i, items_vocab)
+    )
+    
+    n_classes = 1
+    if args.do_classification:
+        n_classes = int(args.max_rating - args.min_rating + 1)
+        rating_fn = lambda r: int(r - args.min_rating)
+        test_df[args.rating_column] = test_df[args.rating_column].apply(rating_fn)
+
+    test_dataset = RatingDataset(test_df, args)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    args.device = device
+
+    model = MLPRecommender(
+        n_users=len(users_vocab), 
+        n_items=len(items_vocab), 
+        embedding_dim=args.embedding_dim,
+        padding_idx=args.padding_idx,
+        n_classes=n_classes
+    )
+    model.to(args.device)
+    if args.save_model_path != "":
+        model.load(args.save_model_path)
+
+    if args.exp_name == "":
+        args.exp_name = f"eval_mlp_{args.time_id}"
+    exps_base_dir = os.path.join(args.dataset_dir, "exps")
+    exp_dir = os.path.join(exps_base_dir, args.exp_name)
+    os.makedirs(exp_dir, exist_ok=True)
+    args.log_file_path = os.path.join(exp_dir, "log.txt")
+    args.res_file_path = os.path.join(exp_dir, "res.json")
+
+    if args.verbose:
+        log = (
+            f"Task: Rating prediction\n" +
+            f"Dataset: {args.dataset_name}\n" +
+            f"Device: {device}\n\n" +
+            f"Arguments:\n{args}\n\n" +
+            f"Data:\n{test_df.head(5)}\n\n"
+        )
+        print("\n" + log)
+        with open(args.log_file_path, "w", encoding="utf-8") as log_file:
+            log_file.write(log)
+
+    loss_fn = get_loss_fn(args)
+    test_results = test(model, test_dataloader, loss_fn, args)
+    results = {"train": {}, "test": test_results}
+    with open(args.res_file_path, "w") as res_file:
+        json.dump(results, res_file)
+
+    log = "Test Results:\n"
+    for metric, value in test_results.items():
+        log += f"{metric}: {value}\n"
+    print(log)
+    with open(args.log_file_path, "a", encoding="utf-8") as log_file:
+        log_file.write(log)
+
 
 def main(args):
     args.time_id = int(time.time())
@@ -375,6 +476,10 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
+    parser.add_argument("--users_path", type=str, default="")
+    parser.add_argument("--items_path", type=str, default="")
+    parser.add_argument("--users_vocab_path", type=str, default="")
+    parser.add_argument("--items_vocab_path", type=str, default="")
     parser.add_argument("--exp_name", type=str, default="")
     
     parser.add_argument("--embedding_dim", type=int, default=128)

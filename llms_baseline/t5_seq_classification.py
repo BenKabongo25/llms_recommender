@@ -57,13 +57,17 @@ class T5MLPRecommender(nn.Module):
         self.model = T5ForSequenceClassification.from_pretrained(args.model_name_or_path)
         self.tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
 
-        self.model.classification_head = nn.Sequential(
-            nn.Linear(self.model.config.d_model, 128),
-            nn.ReLU(),
-            nn.Linear(128, 32),
-            nn.ReLU(),
-            nn.Linear(32, n_classes)
-        )
+        if args.mlp_classifier_flag:
+            self.model.classification_head = nn.Sequential(
+                nn.Linear(self.model.config.d_model, 128),
+                nn.ReLU(),
+                nn.Linear(128, 32),
+                nn.ReLU(),
+                nn.Linear(32, n_classes)
+            )
+        else:
+            self.model.classification_head = nn.Linear(self.model.config.d_model, n_classes)
+
         #for param in self.parameters():
         #    param.requires_grad = False
         #self.model.classification_head.requires_grad = True
@@ -76,6 +80,12 @@ class T5MLPRecommender(nn.Module):
 
     def load(self, path: str):
         self.model.load_state_dict(torch.load(path))
+
+
+def get_loss_fn(args: Any) -> nn.Module:
+    if args.do_classification:
+        return nn.CrossEntropyLoss()
+    return nn.MSELoss()
 
 
 def train(model, optimizer, dataloader, loss_fn, args):
@@ -185,11 +195,7 @@ def test(model, dataloader, loss_fn, args):
 
 def trainer(model, train_dataloader, test_dataloader, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
-    if args.do_classification:
-        loss_fn = nn.CrossEntropyLoss()
-    else:
-        loss_fn = nn.MSELoss()
+    loss_fn = get_loss_fn(args)
 
     train_infos = {
         "accuracy": [], "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
@@ -327,9 +333,10 @@ def main_train_test(args):
     if args.save_model_path != "":
         model.load(args.save_model_path)
 
+    mlp_flag = "mlp" if args.mlp_classifier_flag else "linear"
     if args.exp_name == "":
         args.exp_name = (
-            f"{args.model_name_or_path}_mlp_" +
+            f"{args.model_name_or_path}_{mlp_flag}_" +
             f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
             f"{args.sampling_method}_sampling_{args.time_id}"
         )
@@ -349,6 +356,7 @@ def main_train_test(args):
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
             f"Task: Rating prediction\n" +
+            f"MLP Classifier: {args.mlp_classifier_flag}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
@@ -479,11 +487,7 @@ def main_test(args):
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
 
-    if args.do_classification:
-        loss_fn = nn.CrossEntropyLoss()
-    else:
-        loss_fn = nn.MSELoss()
-
+    loss_fn = get_loss_fn(args)
     test_results = test(model, test_dataloader, loss_fn, args)
     results = {"train": {}, "test": test_results}
     with open(args.res_file_path, "w") as res_file:
@@ -552,6 +556,8 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--save_every", type=int, default=10)
     parser.add_argument("--save_model_path", type=str, default="")
+    parser.add_argument('--mlp_classifier_flag', action=argparse.BooleanOptionalAction)
+    parser.set_defaults(mlp_classifier_flag=True)
 
     parser.add_argument("--base_data_size", type=float, default=0.25)
     parser.add_argument("--max_base_data_samples", type=int, default=1_000_000)
