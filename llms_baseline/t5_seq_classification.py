@@ -232,8 +232,8 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
 
     if args.train_text_data_path != "" and args.test_text_data_path != "":
-        train_df = pd.read_csv(args.train_text_data_path).dropna()
-        test_df = pd.read_csv(args.test_text_data_path).dropna()
+        train_df = pd.read_csv(args.train_text_data_path)
+        test_df = pd.read_csv(args.test_text_data_path)
     
     else:
         if args.train_dataset_path == "" or args.test_dataset_path == "":
@@ -242,8 +242,8 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
             args.test_dataset_path = os.path.join(seen_dir, "test.csv")
 
         if args.train_dataset_path != "" and args.test_dataset_path != "":
-            train_data_df = pd.read_csv(args.train_dataset_path).dropna()
-            test_data_df = pd.read_csv(args.test_dataset_path).dropna()
+            train_data_df = pd.read_csv(args.train_dataset_path)
+            test_data_df = pd.read_csv(args.test_dataset_path)
         
         else:
             if args.dataset_path == "":
