@@ -55,8 +55,11 @@ def train(model, optimizer, dataloader, args):
     running_loss = .0
 
     model.train()
-    for sources_text, targets_text in dataloader:
+    for batch in dataloader:
         optimizer.zero_grad()
+
+        sources_text = batch["source"]
+        targets_text = batch["target"]
 
         inputs = model.tokenizer(
             sources_text, 
@@ -105,7 +108,10 @@ def test(model, dataloader, args):
 
     model.eval()
     with torch.no_grad():
-        for sources_text, targets_text in dataloader:        
+        for batch in dataloader:
+            sources_text = batch["source"]
+            targets_text = batch["target"]
+
             inputs = model.tokenizer(
                 sources_text, 
                 max_length=args.max_source_length,
