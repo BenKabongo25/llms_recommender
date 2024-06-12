@@ -110,6 +110,7 @@ class P5DataCreator:
                         args=self.args,
                         max_length=self.args.max_description_length
                     )
+            sample[self.args.item_description_column] = item_description
 
             source = self.source_prompter.prompt(sample)
             target = self.target_former.target(sample)
