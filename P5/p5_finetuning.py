@@ -39,8 +39,8 @@ class P5Model(nn.Module):
         self.model = T5ForConditionalGeneration.from_pretrained(args.model_name_or_path)
         self.tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
 
-    def forward(self, inputs_ids, attention_mask=None, labels=None):
-        return self.model(input_ids=inputs_ids, attention_mask=attention_mask, labels=labels)
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
     def save(self, path: str):
         torch.save(self.model.state_dict(), path)
