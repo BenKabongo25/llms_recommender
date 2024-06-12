@@ -54,7 +54,7 @@ def lemmatize(text: str) -> str:
     lemmatized_text = " ".join(lemmatized_tokens)
     return lemmatized_text
 
-def preprocess_text(text: str, args: Any) -> str:
+def preprocess_text(text: str, args: Any, max_length: int=-1) -> str:
     if args.replace_maj_word_flag: text = replace_maj_word(text)
     if args.lower_flag: text = text.lower()
     if args.delete_punctuation_flag: text = delete_punctuation(text)
@@ -66,4 +66,9 @@ def preprocess_text(text: str, args: Any) -> str:
     if args.last_line_flag: text = last_line(text)
     if args.stem_flag: text = stem(text)
     if args.lemmatize_flag: text = lemmatize(text)
+    if max_length > 0 and args.truncate_flag:
+        text = str(text).strip().split()
+        if len(text) > max_length:
+            text = text[:max_length - 1] + ["..."]
+        text = " ".join(text)
     return text
