@@ -28,7 +28,6 @@ python /home/kabongo/reco_nlp/reco_nlp/P5/p5_finetuning.py \
     --max_description_length 128 \
     --min_rating 1.0 \
     --max_rating 5.0 \
-    --timestamp_flag \
     --no-user_description_flag \
     --item_description_flag \
     
