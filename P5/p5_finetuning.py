@@ -450,9 +450,6 @@ if __name__ == "__main__":
     parser.add_argument("--item_id_column", type=str, default="item_id")
     parser.add_argument("--rating_column", type=str, default="rating")
     parser.add_argument("--review_column", type=str, default="review")
-    parser.add_argument("--timestamp_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(timestamp_flag=True)
-    parser.add_argument("--timestamp_column", type=str, default="timestamp")
 
     parser.add_argument("--user_description_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(user_description_flag=False)
