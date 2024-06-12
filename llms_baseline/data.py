@@ -8,12 +8,18 @@ import enum
 import numpy as np
 import os
 import pandas as pd
+import sys
 from typing import *
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from prompters import SourcePrompter, TargetFormer
 from sampler import Sampler, SamplingMethod, SimilarityFunction
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+
+from common.utils.preprocess_text import preprocess_text
 
 
 class SplitMethod(enum.Enum):
@@ -183,7 +189,7 @@ class DatasetCreator:
 
             description = ""
             if len(descs) > 0:
-                description = TargetFormer.process_text(
+                description = preprocess_text(
                     text=str(descs[0]), 
                     max_length=self.args.max_description_length,
                     args=self.args
@@ -196,7 +202,7 @@ class DatasetCreator:
             
         review = ""
         if self.args.source_review_flag:
-            review = TargetFormer.process_text(
+            review = preprocess_text(
                 text=str(row[self.args.review_column]), 
                 max_length=self.args.max_review_length,
                 args=self.args
@@ -249,7 +255,7 @@ class DatasetCreator:
                 self.args.user_description_column
             ].values
             if len(descs) > 0:
-                user_description = TargetFormer.process_text(
+                user_description = preprocess_text(
                     text=str(descs[0]), 
                     max_length=self.args.max_description_length,
                     args=self.args
@@ -263,14 +269,14 @@ class DatasetCreator:
                 self.args.item_description_column
             ].values
             if len(descs) > 0:
-                item_description = TargetFormer.process_text(
+                item_description = preprocess_text(
                     text=str(descs[0]), 
                     max_length=self.args.max_description_length,
                     args=self.args
                 )
         
         rating = sample[self.args.rating_column]
-        review = TargetFormer.process_text(
+        review = preprocess_text(
             text=sample[self.args.review_column],
             max_length=self.args.max_review_length,
             args=self.args

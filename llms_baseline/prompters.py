@@ -4,15 +4,6 @@
 # Basline approach
 # Prompts/formats for source and target
 
-import os
-import sys
-from typing import *
-
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, parent_dir)
-
-from common.utils.preprocess_text import preprocess_text
-
 
 class SourcePrompter:
 
@@ -381,12 +372,3 @@ class TargetFormer:
         if len(split) > 1:
             rating = split[1].strip()
         return review, rating
-    
-    @classmethod
-    def process_text(cls, text: str, max_length: int, args: Any) -> str:
-        text = preprocess_text(text, args)
-        if args.truncate_flag:
-            text = str(text).strip().split()
-            if len(text) > max_length:
-                text = text[:max_length - 1] + ["..."]
-        return " ".join(text) 

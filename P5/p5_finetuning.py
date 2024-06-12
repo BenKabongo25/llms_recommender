@@ -1,7 +1,8 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
-# NLP & RecSys - June 2024
+# NLP & RecSys - May 2024
 
-# T5 for Sequence Classification for Rating prediction task
+# P5: https://arxiv.org/abs/2203.13366
+# Fine-tuning and evaluation
 
 import argparse
 import json
@@ -15,66 +16,32 @@ import time
 import torch
 import torch.nn as nn
 import warnings
-
-from sklearn import metrics
-from torch.utils.data import DataLoader, Dataset
-from transformers import T5ForSequenceClassification, T5Tokenizer
+from torch.utils.data import DataLoader
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 from tqdm import tqdm
 from typing import *
 
-from data import DatasetCreator, DataSplitter
+from p5_utils import P5DataCreator, P5Dataset
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 warnings.filterwarnings(action="ignore")
 
-from common.utils.evaluation import ratings_evaluation
+from common.utils.evaluation import ratings_evaluation, reviews_evaluation
 
 
-class TextRatingDataset(Dataset):
+class P5Model(nn.Module):
 
-    def __init__(self, data_df: pd.DataFrame, args: Any=None):
-        self.data_df = data_df
-        self.args = args
-
-    def __len__(self) -> int:
-        return len(self.data_df)
-    
-    def __getitem__(self, index: int) -> Tuple[str, int]:
-        row = self.data_df.iloc[index]
-        source = row["source"]
-        rating = row["rating"]
-        return source, rating
-
-
-class T5MLPRecommender(nn.Module):
-
-    def __init__(self, n_classes: int=1, args: Any=None):
+    def __init__(self, args: Any=None):
         super().__init__()
-        self.n_classes = n_classes
         self.args = args
 
-        self.model = T5ForSequenceClassification.from_pretrained(args.model_name_or_path)
+        self.model = T5ForConditionalGeneration.from_pretrained(args.model_name_or_path)
         self.tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
 
-        if args.mlp_classifier_flag:
-            self.model.classification_head = nn.Sequential(
-                nn.Linear(self.model.config.d_model, 128),
-                nn.ReLU(),
-                nn.Linear(128, 32),
-                nn.ReLU(),
-                nn.Linear(32, n_classes)
-            )
-        else:
-            self.model.classification_head = nn.Linear(self.model.config.d_model, n_classes)
+    def forward(self, inputs_ids, attention_mask=None, labels=None):
+        return self.model(input_ids=inputs_ids, attention_mask=attention_mask, labels=labels)
 
-        #for param in self.parameters():
-        #    param.requires_grad = False
-        #self.model.classification_head.requires_grad = True
-
-    def forward(self, input_ids, attention_mask):
-        return self.model(input_ids=input_ids, attention_mask=attention_mask).logits
-    
     def save(self, path: str):
         torch.save(self.model.state_dict(), path)
 
@@ -82,23 +49,17 @@ class T5MLPRecommender(nn.Module):
         self.model.load_state_dict(torch.load(path))
 
 
-def get_loss_fn(args: Any) -> nn.Module:
-    if args.do_classification:
-        return nn.CrossEntropyLoss()
-    return nn.MSELoss()
-
-
-def train(model, optimizer, dataloader, loss_fn, args):
+def train(model, optimizer, dataloader, args):
     references = []
     predictions = []
     running_loss = .0
 
     model.train()
-    for source, R in dataloader:
+    for sources_text, targets_text in dataloader:
         optimizer.zero_grad()
 
         inputs = model.tokenizer(
-            source, 
+            sources_text, 
             max_length=args.max_source_length,
             padding="max_length",
             truncation=True,
@@ -106,52 +67,47 @@ def train(model, optimizer, dataloader, loss_fn, args):
         )
         input_ids = inputs["input_ids"].to(args.device)
         attention_mask = inputs["attention_mask"].to(args.device)
+
+        targets = model.tokenizer(
+            targets_text, 
+            max_length=args.max_target_length,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt"
+        )
+        labels = targets["input_ids"].to(args.device)
+        labels[labels == model.tokenizer.pad_token_id] = -100
         
-        if args.do_classification:
-            R = torch.LongTensor(R).to(args.device)
-        else:
-            R = torch.tensor(R.clone().detach(), dtype=torch.float32).to(args.device)
-        
-        R_hat = model(input_ids, attention_mask).squeeze()
-        loss = loss_fn(R_hat, R)
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
 
-        if args.do_classification:
-            R_hat = R_hat.argmax(dim=1)
+        outputs_text = model.tokenizer.batch_decode(outputs.logits, skip_special_tokens=True)
 
-        references.extend(R.cpu().detach().tolist())
-        predictions.extend(R_hat.cpu().detach().tolist())
+        references.extend(targets_text)
+        predictions.extend(outputs_text)
 
     running_loss /= len(dataloader)
-    ratings_scores = ratings_evaluation(predictions, references, args)
-    accuracy = -1
-    if args.do_classification:
-        accuracy = metrics.accuracy_score(references, predictions)
+    if args.prompt_type == 2:
+        scores = reviews_evaluation(predictions, references, args)
+    else:
+        scores = ratings_evaluation(predictions, references, args)
 
-    return {
-        "accuracy": accuracy, 
-        "loss": running_loss, 
-        "RMSE": ratings_scores["rmse"], 
-        "MAE": ratings_scores["mae"], 
-        "P": ratings_scores["precision"], 
-        "R": ratings_scores["recall"], 
-        "F1": ratings_scores["f1"], 
-        "AUC": ratings_scores["auc"]
-    }
+    return {"loss": running_loss, **scores}
 
 
-def test(model, dataloader, loss_fn, args):
+def test(model, dataloader, args):
     references = []
     predictions = []
     running_loss = .0
 
     model.eval()
     with torch.no_grad():
-        for source, R in dataloader:        
+        for sources_text, targets_text in dataloader:        
             inputs = model.tokenizer(
-                source, 
+                sources_text, 
                 max_length=args.max_source_length,
                 padding="max_length",
                 truncation=True,
@@ -159,57 +115,50 @@ def test(model, dataloader, loss_fn, args):
             )
             input_ids = inputs["input_ids"].to(args.device)
             attention_mask = inputs["attention_mask"].to(args.device)
+
+            targets = model.tokenizer(
+                targets_text, 
+                max_length=args.max_target_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt"
+            )
+            labels = targets["input_ids"].to(args.device)
+            labels[labels == model.tokenizer.pad_token_id] = -100
             
-            if args.do_classification:
-                R = torch.LongTensor(R).to(args.device)
-            else:
-                R = torch.tensor(R.clone().detach(), dtype=torch.float32).to(args.device)
-            
-            R_hat = model(input_ids, attention_mask).squeeze()
-            loss = loss_fn(R_hat, R)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+            loss = outputs.loss
             running_loss += loss.item()
 
-            if args.do_classification:
-                R_hat = R_hat.argmax(dim=1)
-                
-            references.extend(R.cpu().detach().tolist())
-            predictions.extend(R_hat.cpu().detach().tolist())
+            outputs_text = model.tokenizer.batch_decode(outputs.logits, skip_special_tokens=True)
+
+            references.extend(targets_text)
+            predictions.extend(outputs_text)
 
     running_loss /= len(dataloader)
-    ratings_scores = ratings_evaluation(predictions, references, args)
-    accuracy = -1
-    if args.do_classification:
-        accuracy = metrics.accuracy_score(references, predictions)
+    if args.prompt_type == 2:
+        scores = reviews_evaluation(predictions, references, args)
+    else:
+        scores = ratings_evaluation(predictions, references, args)
 
-    return {
-        "accuracy": accuracy, 
-        "loss": running_loss, 
-        "RMSE": ratings_scores["rmse"], 
-        "MAE": ratings_scores["mae"], 
-        "P": ratings_scores["precision"], 
-        "R": ratings_scores["recall"], 
-        "F1": ratings_scores["f1"], 
-        "AUC": ratings_scores["auc"]
-    }
+    return {"loss": running_loss, **scores}
 
 
 def trainer(model, train_dataloader, test_dataloader, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    loss_fn = get_loss_fn(args)
 
-    train_infos = {
-        "accuracy": [], "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
-    }
-    test_infos = {
-        "accuracy": [], "loss": [], "RMSE": [], "MAE": [], "P": [], "R": [], "F1": [], "AUC": []
-    }
+    train_infos = {}
+    test_infos = {}
 
     progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
     for epoch in progress_bar:
-        train_epoch_infos = train(model, optimizer, train_dataloader, loss_fn, args)
-        test_epoch_infos = test(model, test_dataloader, loss_fn, args)
+        train_epoch_infos = train(model, optimizer, train_dataloader, args)
+        test_epoch_infos = test(model, test_dataloader, args)
 
-        for metric in train_infos:
+        for metric in train_epoch_infos:
+            if metric not in train_infos:
+                train_infos[metric] = []
+                test_infos[metric] = []
             train_infos[metric].append(train_epoch_infos[metric])
             test_infos[metric].append(test_epoch_infos[metric])
 
@@ -262,84 +211,53 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
                 args.items_path = os.path.join(metadata_dir, "items.csv")
             items_df = pd.read_csv(args.items_path)
 
-        spliter = DataSplitter(args)
-        train_split = spliter.split(train_data_df)
-        test_split = spliter.split(test_data_df)
-
-        train_creator = DatasetCreator(
-            sampling_df=train_split["sampling"],
-            base_df=train_split["base"],
+        p5_data_creator = P5DataCreator(args)
+        train_df = p5_data_creator.create_dataset(
+            train_data_df,
             users_df=users_df,
-            items_df=items_df,
-            args=args
+            items_df=items_df
         )
-        train_creator.create_dataset()
-        train_df = train_creator.get_text_df()
-
-        test_creator = DatasetCreator(      
-            sampling_df=test_split["sampling"],
-            base_df=test_split["base"],
+        test_df = p5_data_creator.create_dataset(
+            test_data_df,
             users_df=users_df,
-            items_df=items_df,
-            args=args
+            items_df=items_df
         )
-        test_creator.create_dataset()
-        test_df = test_creator.get_text_df()
 
         if args.save_data_flag:
             if args.save_data_dir == "":
-                args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))
-                os.makedirs(args.save_data_dir, exist_ok=True)
-                args_file_path = os.path.join(args.save_data_dir, "args.json")
-                with open(args_file_path, "w") as args_file:
-                    json.dump(vars(args), args_file)
-
-            train_save_dir = os.path.join(args.save_data_dir, "train")
-            test_save_dir = os.path.join(args.save_data_dir, "test")
-            
+                args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))            
             os.makedirs(args.save_data_dir, exist_ok=True)
-            os.makedirs(train_save_dir, exist_ok=True)
-            os.makedirs(test_save_dir, exist_ok=True)
-
-            train_creator.save_data(train_save_dir)
-            test_creator.save_data(test_save_dir)
-
-    if args.do_classification:
-        rating_fn = lambda x: int(x - args.min_rating)
-        train_df["rating"] = train_df["rating"].apply(rating_fn)
-        test_df["rating"] = test_df["rating"].apply(rating_fn)
+            train_df.to_csv(os.path.join(args.save_data_dir, "train.csv"), index=False)
+            test_df.to_csv(os.path.join(args.save_data_dir, "test.csv"), index=False)
 
     return train_df, test_df
 
 
+def get_task_name(args: Any) -> str:
+    if args.prompt_type == 2:
+        task_name = "Review prediction"
+    else:
+        task_name = "Rating prediction"
+    return task_name
+
+
 def main_train_test(args):
     train_df, test_df = get_train_test_data(args)
-
-    train_dataset = TextRatingDataset(train_df, args)
+    train_dataset = P5Dataset(train_df, args)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-
-    test_dataset = TextRatingDataset(test_df, args)
+    test_dataset = P5Dataset(test_df, args)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
-    n_classes = 1
-    if args.do_classification:
-        n_classes = int(args.max_rating - args.min_rating + 1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
 
-    model = T5MLPRecommender(n_classes, args)
+    model = P5Model(args)
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
 
-    mlp_flag = "mlp" if args.mlp_classifier_flag else "linear"
     if args.exp_name == "":
-        args.exp_name = (
-            f"{args.model_name_or_path}_{mlp_flag}_" +
-            f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
-            f"{args.sampling_method}_sampling_{args.time_id}"
-        )
+        args.exp_name = f"p5_{args.model_name_or_path}_{args.time_id}"
     
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
@@ -355,8 +273,7 @@ def main_train_test(args):
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
-            f"Task: Rating prediction\n" +
-            f"MLP Classifier: {args.mlp_classifier_flag}\n" +
+            f"Task: P5 {get_task_name(args)}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
@@ -405,63 +322,37 @@ def get_test_data(args: Any) -> pd.DataFrame:
                 args.items_path = os.path.join(metadata_dir, "items.csv")
             items_df = pd.read_csv(args.items_path)
 
-        spliter = DataSplitter(args)
-        test_split = spliter.split(test_data_df)
-
-        test_creator = DatasetCreator(      
-            sampling_df=test_split["sampling"],
-            base_df=test_split["base"],
+        p5_data_creator = P5DataCreator(args)
+        test_df = p5_data_creator.create_dataset(
+            test_data_df,
             users_df=users_df,
-            items_df=items_df,
-            args=args
+            items_df=items_df
         )
-        test_creator.create_dataset()
-        test_df = test_creator.get_text_df()
 
-    if args.save_data_flag:
-        if args.save_data_dir == "":
-            args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))
+        if args.save_data_flag:
+            if args.save_data_dir == "":
+                args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))            
             os.makedirs(args.save_data_dir, exist_ok=True)
-            args_file_path = os.path.join(args.save_data_dir, "args.json")
-            with open(args_file_path, "w") as args_file:
-                json.dump(vars(args), args_file)
-
-        test_save_dir = os.path.join(args.save_data_dir, "test")
-        os.makedirs(args.save_data_dir, exist_ok=True)
-        os.makedirs(test_save_dir, exist_ok=True)
-        test_creator.save_data(test_save_dir)
-
-    if args.do_classification:
-        rating_fn = lambda x: int(x - args.min_rating)
-        test_df["rating"] = test_df["rating"].apply(rating_fn)
+            test_df.to_csv(os.path.join(args.save_data_dir, "test.csv"), index=False)
 
     return test_df
 
 
 def main_test(args):
     test_df = get_test_data(args)
-
-    test_dataset = TextRatingDataset(test_df, args)
+    test_dataset = P5Dataset(test_df, args)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
-    n_classes = 1
-    if args.do_classification:
-        n_classes = int(args.max_rating - args.min_rating + 1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
 
-    model = T5MLPRecommender(n_classes, args)
+    model = P5Model(args)
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
 
     if args.exp_name == "":
-        args.exp_name = (
-            f"eval_{args.model_name_or_path}_mlp_" +
-            f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
-            f"{args.sampling_method}_sampling_{args.time_id}"
-        )
+        args.exp_name = f"p5_eval_{args.model_name_or_path}_{args.time_id}"
     
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
@@ -474,7 +365,7 @@ def main_test(args):
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
-            f"Task: Rating prediction\n" +
+            f"Task: P5 {get_task_name(args)}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
@@ -484,8 +375,7 @@ def main_test(args):
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
 
-    loss_fn = get_loss_fn(args)
-    test_results = test(model, test_dataloader, loss_fn, args)
+    test_results = test(model, test_dataloader, args)
     results = {"train": {}, "test": test_results}
     with open(args.res_file_path, "w") as res_file:
         json.dump(results, res_file)
@@ -545,25 +435,13 @@ if __name__ == "__main__":
     parser.add_argument("--random_state", type=int, default=42)
     parser.add_argument("--exp_name", type=str, default="")
 
-    parser.add_argument("--do_classification", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(do_classification=False)
-    
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--save_every", type=int, default=10)
     parser.add_argument("--save_model_path", type=str, default="")
-    parser.add_argument('--mlp_classifier_flag', action=argparse.BooleanOptionalAction)
-    parser.set_defaults(mlp_classifier_flag=True)
 
-    parser.add_argument("--base_data_size", type=float, default=0.25)
-    parser.add_argument("--max_base_data_samples", type=int, default=1_000_000)
-    parser.add_argument("--split_method", type=int, default=0)
-    parser.add_argument("--sampling_method", type=int, default=1)
-    parser.add_argument("--similarity_function", type=int, default=0)
-
-    parser.add_argument("--n_reviews", type=int, default=4)
-    parser.add_argument("--n_samples", type=int, default=0)
+    parser.add_argument("--prompt_type", type=int, default=0)
     parser.add_argument("--max_review_length", type=int, default=128)
     parser.add_argument('--max_description_length', type=int, default=128)
     parser.add_argument("--min_rating", type=float, default=1.0)
@@ -580,20 +458,8 @@ if __name__ == "__main__":
     parser.set_defaults(user_description_flag=False)
     parser.add_argument("--item_description_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(item_description_flag=True)
-    parser.add_argument("--user_only_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(user_only_flag=False)
     parser.add_argument("--user_description_column", type=str, default="description")
     parser.add_argument("--item_description_column", type=str, default="description")
-    parser.add_argument("--source_review_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(source_review_flag=True)
-    parser.add_argument("--source_rating_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(source_rating_flag=False)
-    parser.add_argument("--user_first_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(user_first_flag=True)
-    parser.add_argument("--target_review_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(target_review_flag=False)
-    parser.add_argument("--target_rating_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(target_rating_flag=True)
 
     parser.add_argument("--truncate_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(truncate_flag=True)
