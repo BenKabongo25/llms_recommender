@@ -174,9 +174,10 @@ def trainer(model, train_dataloader, test_dataloader, args):
             train_infos[metric].append(train_epoch_infos[metric])
             test_infos[metric].append(test_epoch_infos[metric])
 
+        metric = "meteor" if args.prompt_type == 2 else "rmse"
         progress_bar.set_description(
             f"[{epoch} / {args.n_epochs}] " +
-            f"RMSE: train={train_epoch_infos['RMSE']:.4f} test={test_epoch_infos['RMSE']:.4f} " +
+            f"{metric}: train={train_epoch_infos[metric]:.4f} test={test_epoch_infos[metric]:.4f} " +
             f"Loss: train={train_epoch_infos['loss']:.4f} test={test_epoch_infos['loss']:.4f}"
         )
 
