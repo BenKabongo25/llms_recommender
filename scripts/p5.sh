@@ -8,7 +8,7 @@
 #SBATCH --output=p5_small_beauty.out
 #SBATCH --error=p5_small_beauty.err
 
-python /home/kabongo/reco_nlp/reco_nlp/llms_baseline/t5_seq_classification.py \
+python /home/kabongo/reco_nlp/reco_nlp/P5/p5_finetuning.py \
     --model_name_or_path google/flan-t5-small \
     --tokenizer_name_or_path google/flan-t5-small \
     --max_source_length 1024 \
