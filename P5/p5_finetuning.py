@@ -87,7 +87,10 @@ def train(model, optimizer, dataloader, args):
         optimizer.step()
         running_loss += loss.item()
 
-        outputs_text = model.tokenizer.batch_decode(outputs.logits, skip_special_tokens=True)
+        outputs_text = model.tokenizer.batch_decode(
+            outputs.logits.argmax(dim=-1), 
+            skip_special_tokens=True
+        )
 
         references.extend(targets_text)
         predictions.extend(outputs_text)
@@ -136,7 +139,10 @@ def test(model, dataloader, args):
             loss = outputs.loss
             running_loss += loss.item()
 
-            outputs_text = model.tokenizer.batch_decode(outputs.logits, skip_special_tokens=True)
+            outputs_text = model.tokenizer.batch_decode(
+                outputs.logits.argmax(dim=-1), 
+                skip_special_tokens=True
+            )
 
             references.extend(targets_text)
             predictions.extend(outputs_text)
