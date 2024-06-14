@@ -7,11 +7,8 @@ import argparse
 import json
 import os
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import random
 import sys
-import time
 import torch
 import torch.nn as nn
 import warnings
@@ -22,13 +19,14 @@ from transformers import T5ForSequenceClassification, T5Tokenizer
 from tqdm import tqdm
 from typing import *
 
-from data import DatasetCreator, DataSplitter
+from utils import get_train_test_data, get_test_data
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 warnings.filterwarnings(action="ignore")
 
 from common.utils.evaluation import ratings_evaluation
+from common.utils.functions import set_seed
 
 
 class TextRatingDataset(Dataset):
@@ -229,91 +227,13 @@ def trainer(model, train_dataloader, test_dataloader, args):
     return train_infos, test_infos
 
 
-def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    if args.train_text_data_path != "" and args.test_text_data_path != "":
-        train_df = pd.read_csv(args.train_text_data_path)
-        test_df = pd.read_csv(args.test_text_data_path)
-    
-    else:
-        if args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
-            seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
-            args.train_dataset_path = os.path.join(seen_dir, "train.csv")
-            args.test_dataset_path = os.path.join(seen_dir, "test.csv")
-
-        if args.train_dataset_path != "" and args.test_dataset_path != "":
-            train_data_df = pd.read_csv(args.train_dataset_path)
-            test_data_df = pd.read_csv(args.test_dataset_path)
-        
-        else:
-            data_df = pd.read_csv(args.dataset_path)
-            train_data_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
-            test_data_df = data_df.drop(train_data_df.index)
-
-        metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
-        users_df = None
-        if args.user_description_flag:
-            if args.users_path == "":
-                args.users_path = os.path.join(metadata_dir, "users.csv")
-            users_df = pd.read_csv(args.users_path)
-
-        items_df = None
-        if args.item_description_flag:
-            if args.items_path == "":
-                args.items_path = os.path.join(metadata_dir, "items.csv")
-            items_df = pd.read_csv(args.items_path)
-
-        spliter = DataSplitter(args)
-        train_split = spliter.split(train_data_df)
-        test_split = spliter.split(test_data_df)
-
-        train_creator = DatasetCreator(
-            sampling_df=train_split["sampling"],
-            base_df=train_split["base"],
-            users_df=users_df,
-            items_df=items_df,
-            args=args
-        )
-        train_creator.create_dataset()
-        train_df = train_creator.get_text_df()
-
-        test_creator = DatasetCreator(      
-            sampling_df=test_split["sampling"],
-            base_df=test_split["base"],
-            users_df=users_df,
-            items_df=items_df,
-            args=args
-        )
-        test_creator.create_dataset()
-        test_df = test_creator.get_text_df()
-
-        if args.save_data_flag:
-            if args.save_data_dir == "":
-                args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))
-                os.makedirs(args.save_data_dir, exist_ok=True)
-                args_file_path = os.path.join(args.save_data_dir, "args.json")
-                with open(args_file_path, "w") as args_file:
-                    json.dump(vars(args), args_file)
-
-            train_save_dir = os.path.join(args.save_data_dir, "train")
-            test_save_dir = os.path.join(args.save_data_dir, "test")
-            
-            os.makedirs(args.save_data_dir, exist_ok=True)
-            os.makedirs(train_save_dir, exist_ok=True)
-            os.makedirs(test_save_dir, exist_ok=True)
-
-            train_creator.save_data(train_save_dir)
-            test_creator.save_data(test_save_dir)
+def main_train_test(args):
+    train_df, test_df = get_train_test_data(args)
 
     if args.do_classification:
         rating_fn = lambda x: int(x - args.min_rating)
         train_df["rating"] = train_df["rating"].apply(rating_fn)
         test_df["rating"] = test_df["rating"].apply(rating_fn)
-
-    return train_df, test_df
-
-
-def main_train_test(args):
-    train_df, test_df = get_train_test_data(args)
 
     train_dataset = TextRatingDataset(train_df, args)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
@@ -380,66 +300,12 @@ def main_train_test(args):
         plt.savefig(os.path.join(exp_dir, metric.lower() + ".png"))
 
 
-def get_test_data(args: Any) -> pd.DataFrame:
-    if args.test_text_data_path != "":
-        test_df = pd.read_csv(args.test_text_data_path)
-        return test_df
-
-    else:    
-        if args.test_dataset_path == "":
-            seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
-            args.test_dataset_path = os.path.join(seen_dir, "test.csv")
-
-        test_data_df = pd.read_csv(args.test_dataset_path)
-            
-        metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
-        users_df = None
-        if args.user_description_flag:
-            if args.users_path == "":
-                args.users_path = os.path.join(metadata_dir, "users.csv")
-            users_df = pd.read_csv(args.users_path)
-
-        items_df = None
-        if args.item_description_flag:
-            if args.items_path == "":
-                args.items_path = os.path.join(metadata_dir, "items.csv")
-            items_df = pd.read_csv(args.items_path)
-
-        spliter = DataSplitter(args)
-        test_split = spliter.split(test_data_df)
-
-        test_creator = DatasetCreator(      
-            sampling_df=test_split["sampling"],
-            base_df=test_split["base"],
-            users_df=users_df,
-            items_df=items_df,
-            args=args
-        )
-        test_creator.create_dataset()
-        test_df = test_creator.get_text_df()
-
-    if args.save_data_flag:
-        if args.save_data_dir == "":
-            args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))
-            os.makedirs(args.save_data_dir, exist_ok=True)
-            args_file_path = os.path.join(args.save_data_dir, "args.json")
-            with open(args_file_path, "w") as args_file:
-                json.dump(vars(args), args_file)
-
-        test_save_dir = os.path.join(args.save_data_dir, "test")
-        os.makedirs(args.save_data_dir, exist_ok=True)
-        os.makedirs(test_save_dir, exist_ok=True)
-        test_creator.save_data(test_save_dir)
+def main_test(args):
+    test_df = get_test_data(args)
 
     if args.do_classification:
         rating_fn = lambda x: int(x - args.min_rating)
         test_df["rating"] = test_df["rating"].apply(rating_fn)
-
-    return test_df
-
-
-def main_test(args):
-    test_df = get_test_data(args)
 
     test_dataset = TextRatingDataset(test_df, args)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
@@ -499,10 +365,7 @@ def main_test(args):
 
 
 def main(args):
-    args.time_id = int(time.time())
-    random.seed(args.random_state)
-    np.random.seed(args.random_state)
-    torch.manual_seed(args.random_state)
+    set_seed(args)
 
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)

@@ -1,18 +1,13 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - June 2024
 
-# P5: https://arxiv.org/abs/2203.13366
-# Fine-tuning and evaluation
+# Basline approach
+# T5 Fine-tuning and evaluation
 
 import argparse
 import json
 import os
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import random
 import sys
-import time
 import torch
 import torch.nn as nn
 import warnings
@@ -21,7 +16,8 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from tqdm import tqdm
 from typing import *
 
-from p5_utils import P5DataCreator, P5Dataset
+from data import TextDataset
+from utils import get_train_test_data, get_test_data
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
@@ -31,7 +27,7 @@ from common.utils.evaluation import ratings_evaluation, reviews_evaluation
 from common.utils.functions import set_seed
 
 
-class P5Model(nn.Module):
+class T5Recommender(nn.Module):
 
     def __init__(self, args: Any=None):
         super().__init__()
@@ -59,8 +55,8 @@ def train(model, optimizer, dataloader, args):
     for batch in dataloader:
         optimizer.zero_grad()
 
-        sources_text = batch["source"]
-        targets_text = batch["target"]
+        sources_text = batch["source_text"]
+        targets_text = batch["target_text"]
 
         inputs = model.tokenizer(
             sources_text, 
@@ -113,8 +109,8 @@ def test(model, dataloader, args):
     model.eval()
     with torch.no_grad():
         for batch in dataloader:
-            sources_text = batch["source"]
-            targets_text = batch["target"]
+            sources_text = batch["source_text"]
+            targets_text = batch["target_text"]
 
             inputs = model.tokenizer(
                 sources_text, 
@@ -190,86 +186,39 @@ def trainer(model, train_dataloader, test_dataloader, args):
     return train_infos, test_infos
 
 
-def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    if args.train_text_data_path != "" and args.test_text_data_path != "":
-        train_df = pd.read_csv(args.train_text_data_path)
-        test_df = pd.read_csv(args.test_text_data_path)
-    
-    else:
-        if args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
-            seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
-            args.train_dataset_path = os.path.join(seen_dir, "train.csv")
-            args.test_dataset_path = os.path.join(seen_dir, "test.csv")
-
-        if args.train_dataset_path != "" and args.test_dataset_path != "":
-            train_data_df = pd.read_csv(args.train_dataset_path)
-            test_data_df = pd.read_csv(args.test_dataset_path)
-        
-        else:
-            data_df = pd.read_csv(args.dataset_path)
-            train_data_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
-            test_data_df = data_df.drop(train_data_df.index)
-
-        metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
-        users_df = None
-        if args.user_description_flag:
-            if args.users_path == "":
-                args.users_path = os.path.join(metadata_dir, "users.csv")
-            users_df = pd.read_csv(args.users_path)
-
-        items_df = None
-        if args.item_description_flag:
-            if args.items_path == "":
-                args.items_path = os.path.join(metadata_dir, "items.csv")
-            items_df = pd.read_csv(args.items_path)
-
-        p5_data_creator = P5DataCreator(args)
-        train_df = p5_data_creator.create_dataset(
-            train_data_df,
-            users_df=users_df,
-            items_df=items_df
-        )
-        test_df = p5_data_creator.create_dataset(
-            test_data_df,
-            users_df=users_df,
-            items_df=items_df
-        )
-
-        if args.save_data_flag:
-            if args.save_data_dir == "":
-                args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))            
-            os.makedirs(args.save_data_dir, exist_ok=True)
-            train_df.to_csv(os.path.join(args.save_data_dir, "train.csv"), index=False)
-            test_df.to_csv(os.path.join(args.save_data_dir, "test.csv"), index=False)
-
-    return train_df, test_df
-
-
 def get_task_name(args: Any) -> str:
-    if args.prompt_type == 2:
+    if args.target_review_flag and args.target_rating_flag:
+        task_name = "Review and rating prediction"
+    elif args.target_review_flag:
         task_name = "Review prediction"
-    else:
+    elif args.target_rating_flag:
         task_name = "Rating prediction"
+    else:
+        task_name = "No task"
     return task_name
 
 
 def main_train_test(args):
     train_df, test_df = get_train_test_data(args)
-    train_dataset = P5Dataset(train_df, args)
+    train_dataset = TextDataset(train_df)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    test_dataset = P5Dataset(test_df, args)
+    test_dataset = TextDataset(test_df)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
 
-    model = P5Model(args)
+    model = T5Recommender(args)
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
 
     if args.exp_name == "":
-        args.exp_name = f"p5_{args.model_name_or_path}_{args.time_id}"
+        args.exp_name = (
+            f"{args.model_name_or_path}_finetuning_" +
+            f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
+            f"{args.sampling_method}_sampling_{args.time_id}"
+        )
     
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
@@ -282,10 +231,14 @@ def main_train_test(args):
         args.save_model_path = os.path.join(exp_dir, "model.pth")
 
     if args.verbose:
+        task_name = get_task_name(args)
+        example = next(iter(train_dataloader))
+        log_example = f"Input: {example['source_text'][0]}"
+        log_example += f"\n\nTarget: {example['target_text'][0]}"
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
-            f"Task: P5 {get_task_name(args)}\n" +
+            f"Task: {task_name}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
@@ -300,71 +253,26 @@ def main_train_test(args):
     with open(args.res_file_path, "w") as res_file:
         json.dump(results, res_file)
 
-    for metric in train_infos:
-        plt.figure()
-        plt.title(f"{args.dataset_name} MLP - {metric}")
-        plt.plot(train_infos[metric], label="train")
-        plt.plot(test_infos[metric], label="test")
-        plt.legend()
-        plt.savefig(os.path.join(exp_dir, metric.lower() + ".png"))
-
-
-def get_test_data(args: Any) -> pd.DataFrame:
-    if args.test_text_data_path != "":
-        test_df = pd.read_csv(args.test_text_data_path)
-        return test_df
-
-    else:    
-        if args.test_dataset_path == "":
-            seen_dir = os.path.join(args.dataset_dir, "samples", "splits", "seen")
-            args.test_dataset_path = os.path.join(seen_dir, "test.csv")
-
-        test_data_df = pd.read_csv(args.test_dataset_path)
-            
-        metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
-        users_df = None
-        if args.user_description_flag:
-            if args.users_path == "":
-                args.users_path = os.path.join(metadata_dir, "users.csv")
-            users_df = pd.read_csv(args.users_path)
-
-        items_df = None
-        if args.item_description_flag:
-            if args.items_path == "":
-                args.items_path = os.path.join(metadata_dir, "items.csv")
-            items_df = pd.read_csv(args.items_path)
-
-        p5_data_creator = P5DataCreator(args)
-        test_df = p5_data_creator.create_dataset(
-            test_data_df,
-            users_df=users_df,
-            items_df=items_df
-        )
-
-        if args.save_data_flag:
-            if args.save_data_dir == "":
-                args.save_data_dir = os.path.join(args.dataset_dir, "samples", str(args.time_id))            
-            os.makedirs(args.save_data_dir, exist_ok=True)
-            test_df.to_csv(os.path.join(args.save_data_dir, "test.csv"), index=False)
-
-    return test_df
-
 
 def main_test(args):
     test_df = get_test_data(args)
-    test_dataset = P5Dataset(test_df, args)
+    test_dataset = TextDataset(test_df)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
 
-    model = P5Model(args)
+    model = T5Recommender(args)
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
 
     if args.exp_name == "":
-        args.exp_name = f"p5_eval_{args.model_name_or_path}_{args.time_id}"
+        args.exp_name = (
+            f"eval_{args.model_name_or_path}_finetuning_" +
+            f"{args.n_samples}_shot_{args.n_reviews}_reviews_"
+            f"{args.sampling_method}_sampling_{args.time_id}"
+        )
     
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
@@ -374,10 +282,14 @@ def main_test(args):
     args.res_file_path = os.path.join(exp_dir, "res.json")
 
     if args.verbose:
+        task_name = get_task_name(args)
+        example = next(iter(test_dataloader))
+        log_example = f"Input: {example['source_text'][0]}"
+        log_example += f"\n\nTarget: {example['target_text'][0]}"
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
-            f"Task: P5 {get_task_name(args)}\n" +
+            f"Task: {task_name}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
@@ -432,17 +344,14 @@ if __name__ == "__main__":
     parser.add_argument("--train_text_data_path", type=str, default="")
     parser.add_argument("--test_text_data_path", type=str, default="")
 
-    parser.add_argument("--train_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(train_flag=True)
     parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(save_data_flag=False)
+    parser.set_defaults(save_data_flag=True)
     parser.add_argument("--save_data_dir", type=str, default="")
-
     parser.add_argument("--lang", type=str, default="en")
     parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
     parser.set_defaults(verbose=True)
-    parser.add_argument("--random_state", type=int, default=42)
     parser.add_argument("--exp_name", type=str, default="")
+    parser.add_argument("--random_state", type=int, default=42)
 
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=16)
@@ -450,7 +359,14 @@ if __name__ == "__main__":
     parser.add_argument("--save_every", type=int, default=10)
     parser.add_argument("--save_model_path", type=str, default="")
 
-    parser.add_argument("--prompt_type", type=int, default=0)
+    parser.add_argument("--base_data_size", type=float, default=0.25)
+    parser.add_argument("--max_base_data_samples", type=int, default=1_000_000)
+    parser.add_argument("--split_method", type=int, default=0)
+    parser.add_argument("--sampling_method", type=int, default=1)
+    parser.add_argument("--similarity_function", type=int, default=0)
+
+    parser.add_argument("--n_reviews", type=int, default=4)
+    parser.add_argument("--n_samples", type=int, default=0)
     parser.add_argument("--max_review_length", type=int, default=128)
     parser.add_argument('--max_description_length', type=int, default=128)
     parser.add_argument("--min_rating", type=float, default=1.0)
@@ -459,13 +375,34 @@ if __name__ == "__main__":
     parser.add_argument("--item_id_column", type=str, default="item_id")
     parser.add_argument("--rating_column", type=str, default="rating")
     parser.add_argument("--review_column", type=str, default="review")
+    parser.add_argument("--timestamp_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(timestamp_flag=False)
+    parser.add_argument("--timestamp_column", type=str, default="timestamp")
 
     parser.add_argument("--user_description_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(user_description_flag=False)
     parser.add_argument("--item_description_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(item_description_flag=True)
+    parser.add_argument("--user_only_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(user_only_flag=False)
     parser.add_argument("--user_description_column", type=str, default="description")
     parser.add_argument("--item_description_column", type=str, default="description")
+    parser.add_argument("--source_review_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(source_review_flag=True)
+    parser.add_argument("--source_rating_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(source_rating_flag=False)
+    parser.add_argument("--user_first_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(user_first_flag=True)
+    parser.add_argument("--target_review_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(target_review_flag=False)
+    parser.add_argument("--target_rating_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(target_rating_flag=True)
+
+    parser.add_argument("--train_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(train_flag=True)
+    parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(save_data_flag=False)
+    parser.add_argument("--save_data_dir", type=str, default="")
 
     parser.add_argument("--truncate_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(truncate_flag=True)
