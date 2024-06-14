@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --partition=electronic
-#SBATCH --job-name=p5_small
+#SBATCH --job-name=t5_beautys
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
