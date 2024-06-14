@@ -27,6 +27,7 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 
 from common.utils.evaluation import evaluate_fn
+from common.utils.functions import set_seed
 
 
 class BasePromptModel:
@@ -215,10 +216,7 @@ def get_text_data(args):
     
     
 def main(args):
-    args.time_id = int(time.time())
-    random.seed(args.random_state)
-    np.random.seed(args.random_state)
-    torch.manual_seed(args.random_state)
+    set_seed(args)
 
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
