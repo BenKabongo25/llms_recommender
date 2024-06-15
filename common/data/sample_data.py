@@ -132,17 +132,17 @@ def main(args):
 		args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
 
 	data_path = os.path.join(args.dataset_dir, "data.csv")
-	data_df = pd.read_csv(data_path, index_col=0).dropna().drop_duplicates()
+	data_df = pd.read_csv(data_path).dropna().drop_duplicates()
 
 	users_path = os.path.join(args.dataset_dir, "users.csv")
 	users_df = None
 	if os.path.exists(users_path):
-		users_df = pd.read_csv(users_path, index_col=0).dropna().drop_duplicates()
+		users_df = pd.read_csv(users_path).dropna().drop_duplicates()
 	
 	items_path = os.path.join(args.dataset_dir, "items.csv")
 	items_df = None
 	if os.path.exists(items_path):
-		items_df = pd.read_csv(items_path, index_col=0).dropna().drop_duplicates()
+		items_df = pd.read_csv(items_path).dropna().drop_duplicates()
 
 	sample_split(data_df, users_df, items_df, args)
 	 
