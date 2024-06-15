@@ -7,11 +7,7 @@
 import argparse
 import json
 import os
-import numpy as np
 import pandas as pd
-import random
-import sys
-import time
 import torch
 
 from torch.utils.data import DataLoader
@@ -22,12 +18,7 @@ from tqdm import tqdm
 
 from data import DatasetCreator, DataSplitter, TextDataset
 from prompters import TargetFormer
-
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, parent_dir)
-
-from common.utils.evaluation import evaluate_fn
-from common.utils.functions import set_seed
+from utils import evaluate_fn, set_seed
 
 
 class BasePromptModel:

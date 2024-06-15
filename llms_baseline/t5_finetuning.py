@@ -17,14 +17,16 @@ from tqdm import tqdm
 from typing import *
 
 from data import TextDataset
-from utils import get_train_test_data, get_test_data
+from utils import (
+    get_train_test_data, 
+    get_test_data,
+    ratings_evaluation,
+    reviews_evaluation,
+    set_seed
+)
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, parent_dir)
 warnings.filterwarnings(action="ignore")
 
-from common.utils.evaluation import ratings_evaluation, reviews_evaluation
-from common.utils.functions import set_seed
 
 
 class T5Recommender(nn.Module):
@@ -344,9 +346,6 @@ if __name__ == "__main__":
     parser.add_argument("--train_text_data_path", type=str, default="")
     parser.add_argument("--test_text_data_path", type=str, default="")
 
-    parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(save_data_flag=True)
-    parser.add_argument("--save_data_dir", type=str, default="")
     parser.add_argument("--lang", type=str, default="en")
     parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
     parser.set_defaults(verbose=True)

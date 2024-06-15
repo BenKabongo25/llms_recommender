@@ -8,18 +8,13 @@ import enum
 import numpy as np
 import os
 import pandas as pd
-import sys
 from typing import *
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from prompters import SourcePrompter, TargetFormer
 from sampler import Sampler, SamplingMethod, SimilarityFunction
-
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, parent_dir)
-
-from common.utils.preprocess_text import preprocess_text
+from utils import preprocess_text
 
 
 class SplitMethod(enum.Enum):

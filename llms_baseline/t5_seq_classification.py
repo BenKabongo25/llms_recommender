@@ -19,14 +19,14 @@ from transformers import T5ForSequenceClassification, T5Tokenizer
 from tqdm import tqdm
 from typing import *
 
-from utils import get_train_test_data, get_test_data
+from utils import (
+    get_train_test_data, 
+    get_test_data,
+    ratings_evaluation,
+    set_seed
+)
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, parent_dir)
 warnings.filterwarnings(action="ignore")
-
-from common.utils.evaluation import ratings_evaluation
-from common.utils.functions import set_seed
 
 
 class TextRatingDataset(Dataset):

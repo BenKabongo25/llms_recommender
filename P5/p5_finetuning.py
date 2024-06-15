@@ -21,14 +21,14 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from tqdm import tqdm
 from typing import *
 
-from p5_utils import P5DataCreator, P5Dataset
+from p5_utils import (
+    P5DataCreator, P5Dataset,
+    ratings_evaluation, reviews_evaluation,
+    set_seed
+)
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, parent_dir)
 warnings.filterwarnings(action="ignore")
 
-from common.utils.evaluation import ratings_evaluation, reviews_evaluation
-from common.utils.functions import set_seed
 
 
 class P5Model(nn.Module):
