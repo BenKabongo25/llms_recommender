@@ -19,12 +19,8 @@ from transformers import T5ForSequenceClassification, T5Tokenizer
 from tqdm import tqdm
 from typing import *
 
-from utils import (
-    get_train_test_data, 
-    get_test_data,
-    ratings_evaluation,
-    set_seed
-)
+from data import get_train_test_data, get_test_data
+from utils import ratings_evaluation, set_seed
 
 warnings.filterwarnings(action="ignore")
 

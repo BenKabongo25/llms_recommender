@@ -16,17 +16,16 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from tqdm import tqdm
 from typing import *
 
-from data import TextDataset
+from data import TextDataset, get_train_test_data, get_test_data
+from prompters import TargetFormer
 from utils import (
-    get_train_test_data, 
-    get_test_data,
+    evaluate_fn,
     ratings_evaluation,
     reviews_evaluation,
     set_seed
 )
 
 warnings.filterwarnings(action="ignore")
-
 
 
 class T5Recommender(nn.Module):
@@ -48,6 +47,39 @@ class T5Recommender(nn.Module):
         self.model.load_state_dict(torch.load(path))
 
 
+def get_evaluation_scores(predictions: list, references: list, args: Any) -> dict:
+    scores = {}
+
+    if args.target_rating_flag and args.target_review_flag:
+        reviews_predictions = []
+        reviews_references = []
+        ratings_predictions = []
+        ratings_references = []
+
+        for i in range(len(predictions)):
+            p_review, p_rating = TargetFormer.get_review_rating(predictions[i])
+            r_review, r_rating = TargetFormer.get_review_rating(references[i])
+
+            reviews_predictions.append(p_review)
+            reviews_references.append(r_review)
+            ratings_predictions.append(p_rating)
+            ratings_references.append(r_rating)
+
+        scores = evaluate_fn(
+            reviews_predictions, reviews_references,
+            ratings_predictions, ratings_references,
+            args
+        )
+
+    elif args.target_rating_flag:
+        scores = ratings_evaluation(predictions, references, args)
+
+    elif args.target_review_flag:
+        scores = reviews_evaluation(predictions, references, args)
+
+    return scores
+
+
 def train(model, optimizer, dataloader, args):
     references = []
     predictions = []
@@ -58,7 +90,7 @@ def train(model, optimizer, dataloader, args):
         optimizer.zero_grad()
 
         sources_text = batch["source_text"]
-        targets_text = batch["target_text"]
+        targets_text = batch[args.objective_column_name]
 
         inputs = model.tokenizer(
             sources_text, 
@@ -95,10 +127,7 @@ def train(model, optimizer, dataloader, args):
         predictions.extend(outputs_text)
 
     running_loss /= len(dataloader)
-    if args.prompt_type == 2:
-        scores = reviews_evaluation(predictions, references, args)
-    else:
-        scores = ratings_evaluation(predictions, references, args)
+    scores = get_evaluation_scores(predictions, references, args)
 
     return {"loss": running_loss, **scores}
 
@@ -112,7 +141,7 @@ def test(model, dataloader, args):
     with torch.no_grad():
         for batch in dataloader:
             sources_text = batch["source_text"]
-            targets_text = batch["target_text"]
+            targets_text = batch[args.objective_column_name]
 
             inputs = model.tokenizer(
                 sources_text, 
@@ -147,10 +176,7 @@ def test(model, dataloader, args):
             predictions.extend(outputs_text)
 
     running_loss /= len(dataloader)
-    if args.prompt_type == 2:
-        scores = reviews_evaluation(predictions, references, args)
-    else:
-        scores = ratings_evaluation(predictions, references, args)
+    scores = get_evaluation_scores(predictions, references, args)
 
     return {"loss": running_loss, **scores}
 
@@ -188,7 +214,7 @@ def trainer(model, train_dataloader, test_dataloader, args):
     return train_infos, test_infos
 
 
-def get_task_name(args: Any) -> str:
+def get_task_name(args) -> str:
     if args.target_review_flag and args.target_rating_flag:
         task_name = "Review and rating prediction"
     elif args.target_review_flag:
@@ -200,12 +226,38 @@ def get_task_name(args: Any) -> str:
     return task_name
 
 
+def set_objective_column_name(args):
+    args.objective_column_name = ""
+    if args.target_review_flag and args.target_rating_flag:
+        args.objective_column_name = args.objective_column_name
+    elif args.target_review_flag:
+        args.objective_column_name = "review"
+    elif args.target_rating_flag:
+        args.objective_column_name = "rating"
+
+
+def collate_fn(batch):
+    collated_batch = {}
+    for key in batch[0]:
+        collated_batch[key] = [d[key] for d in batch]
+    return collated_batch
+
+
 def main_train_test(args):
     train_df, test_df = get_train_test_data(args)
+    train_df["rating"] = train_df["rating"].apply(str)
+    test_df["rating"] = test_df["rating"].apply(str)
     train_dataset = TextDataset(train_df)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    train_dataloader = DataLoader(
+        train_dataset, 
+        batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn
+    )
     test_dataset = TextDataset(test_df)
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    test_dataloader = DataLoader(
+        test_dataset, 
+        batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
+    )
+    set_objective_column_name(args)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
@@ -236,7 +288,7 @@ def main_train_test(args):
         task_name = get_task_name(args)
         example = next(iter(train_dataloader))
         log_example = f"Input: {example['source_text'][0]}"
-        log_example += f"\n\nTarget: {example['target_text'][0]}"
+        log_example += f"\n\nTarget: {example[args.objective_column_name][0]}"
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
@@ -244,7 +296,8 @@ def main_train_test(args):
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
-            f"Data:\n{train_df.head(5)}\n\n"
+            f"Data:\n{train_df.head(5)}\n\n" +
+            f"Input-Output example:\n{log_example}\n\n"
         )
         print("\n" + log)
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
@@ -258,8 +311,13 @@ def main_train_test(args):
 
 def main_test(args):
     test_df = get_test_data(args)
+    test_df["rating"] = test_df["rating"].apply(str)
     test_dataset = TextDataset(test_df)
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    test_dataloader = DataLoader(
+        test_dataset, 
+        batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
+    )
+    set_objective_column_name(args)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
@@ -287,7 +345,7 @@ def main_test(args):
         task_name = get_task_name(args)
         example = next(iter(test_dataloader))
         log_example = f"Input: {example['source_text'][0]}"
-        log_example += f"\n\nTarget: {example['target_text'][0]}"
+        log_example += f"\n\nTarget: {example[args.objective_column_name][0]}"
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
@@ -295,7 +353,8 @@ def main_test(args):
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n\n" +
             f"Arguments:\n{args}\n\n" +
-            f"Data:\n{test_df.head(5)}\n\n"
+            f"Data:\n{test_df.head(5)}\n\n" +
+            f"Input-Output example:\n{log_example}\n\n"
         )
         print("\n" + log)
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:

@@ -253,7 +253,7 @@ def main(args):
             f"Approach: Prompting - {args.n_samples} shot - {args.n_reviews} reviews \n" +
             f"Sampling method: {args.sampling_method}\n" +
             f"Device: {device}\n\n" +
-            f"Data:\n{text_df.head(2)}\n\n"
+            f"Data:\n{text_df.head(2)}\n\n" +
             f"Input-Output example:\n{log_example}\n\n"
         )
         print("\n" + log)
