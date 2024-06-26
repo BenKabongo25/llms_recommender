@@ -149,9 +149,9 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--base_dir", type=str, default="Datasets\\AmazonReviews2023_processed")
-	parser.add_argument("--dataset_name", type=str, default="CDs_and_Vinyl")
-	parser.add_argument("--dataset_dir", type=str, default="")
+	parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
+	parser.add_argument("--dataset_name", type=str, default="TripAdvisor")
+	parser.add_argument("--dataset_dir", type=str, default="Datasets\\processed\\TripAdvisor")
 	
 	parser.add_argument("--user_id_column", type=str, default="user_id")
 	parser.add_argument("--item_id_column", type=str, default="item_id")
