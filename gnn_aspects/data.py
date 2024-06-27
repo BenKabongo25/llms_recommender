@@ -31,11 +31,13 @@ def document2graph(
 
     for i in range(1, len(args.aspects) + 1):
         x.append([1]) # aspect
-        node_name.append(args.aspects[i - 1])
+        aspect = args.aspects[i - 1]
+        node_name.append(aspect)
         edge_index.append([0, i])
         edge_index.append([i, 0])
-        edge_weight.append(1.0)
-        edge_weight.append(1.0)
+        weight = (np.mean(documents_df[aspect]) - args.aspect_min_rating) / (args.aspect_max_rating - args.aspect_min_rating)
+        edge_weight.append(weight)
+        edge_weight.append(weight)
 
     last_index = len(x)
     for j, (_, row) in enumerate(documents_df.iterrows()):
