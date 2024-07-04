@@ -58,12 +58,24 @@ def ratings_evaluation(predictions: List[float], references: List[float], args) 
             if n_non_numerical < 10:
                 non_numerical_examples.append(predictions[i])
 
+    if len(predictions) == 0:
+        return {
+            "n_examples": n_examples,
+            "n_non_numerical": n_non_numerical,
+            "non_numerical_examples": non_numerical_examples
+        }
+
     predictions = np.array(numerical_predictions, dtype=float)
     references = np.array(numerical_references, dtype=float)
 
     mean_rating = np.ceil((args.min_rating + args.max_rating) / 2)
     binary_predictions = np.where(predictions > mean_rating, 1, 0)
     binary_references = np.where(references > mean_rating, 1, 0)
+
+    try:
+        auc = metrics.roc_auc_score(binary_references, binary_predictions)
+    except:
+        auc = None
 
     return {
         "n_examples": n_examples,
@@ -73,7 +85,7 @@ def ratings_evaluation(predictions: List[float], references: List[float], args) 
         "precision": metrics.accuracy_score(binary_references, binary_predictions),
         "recall": metrics.recall_score(binary_references, binary_predictions),
         "f1": metrics.f1_score(binary_references, binary_predictions),
-        "auc": metrics.roc_auc_score(binary_references, binary_predictions),
+        "auc": auc,
         "non_numerical_examples": non_numerical_examples
     }
 
