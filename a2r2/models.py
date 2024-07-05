@@ -38,7 +38,7 @@ class AttentionLayer(nn.Module):
             dim=-1
         )
 
-        return torch.matmul(attention, V)
+        return torch.matmul(attention, V), attention
     
 
 def get_num_aspects_embeddings(n_elements: int, n_aspects: int) -> int:
@@ -118,7 +118,7 @@ class A2R2v1(nn.Module):
         user_embeddings = self.users_embed(U_ids).unsqueeze(1)
         IA_ids = get_aspects_ids(I_ids, self.n_aspects)
         item_aspect_embeddings = self.items_aspects_embed(IA_ids)
-        item_user_embeddings = self.attn_u(user_embeddings, item_aspect_embeddings, item_aspect_embeddings)
+        item_user_embeddings, _ = self.attn_u(user_embeddings, item_aspect_embeddings, item_aspect_embeddings)
 
         user_embeddings = user_embeddings.squeeze(1)
         item_user_embeddings = item_user_embeddings.squeeze(1)
@@ -153,6 +153,18 @@ class A2R2v1(nn.Module):
             aspect_ratings = torch.einsum("bd,bad->ba", user_embeddings, item_aspect_embeddings)
 
         return overall_rating, aspect_ratings
+    
+
+    def get_user_attention_weights(
+        self,
+        U_ids: torch.Tensor,
+        I_ids: torch.Tensor,
+    ) -> torch.Tensor:
+        user_embeddings = self.users_embed(U_ids).unsqueeze(1)
+        IA_ids = get_aspects_ids(I_ids, self.n_aspects)
+        item_aspect_embeddings = self.items_aspects_embed(IA_ids)
+        _, attention = self.attn_u(user_embeddings, item_aspect_embeddings, item_aspect_embeddings)
+        return attention
         
 
 class A2R2v2(nn.Module):
@@ -241,8 +253,8 @@ class A2R2v2(nn.Module):
         IA_ids = get_aspects_ids(I_ids, self.n_aspects)
         item_aspect_embeddings = self.items_aspects_embed(IA_ids)
 
-        item_user_embeddings = self.attn_i(item_embeddings, user_aspect_embeddings, item_aspect_embeddings)
-        user_item_embeddings = self.attn_u(user_embeddings, item_aspect_embeddings, user_aspect_embeddings)
+        item_user_embeddings, _ = self.attn_i(item_embeddings, user_aspect_embeddings, item_aspect_embeddings)
+        user_item_embeddings, _ = self.attn_u(user_embeddings, item_aspect_embeddings, user_aspect_embeddings)
 
         user_embeddings = user_embeddings.squeeze(1)
         item_embeddings = item_embeddings.squeeze(1)
@@ -278,6 +290,38 @@ class A2R2v2(nn.Module):
             aspect_ratings = torch.einsum("bad,bad->ba", user_aspect_embeddings, item_aspect_embeddings)
 
         return overall_rating, aspect_ratings
+    
+
+    def get_user_attention_weights(
+        self,
+        U_ids: torch.Tensor,
+        I_ids: torch.Tensor,
+    ) -> torch.Tensor:
+        user_embeddings = self.users_embed(U_ids).unsqueeze(1)
+        UA_ids = get_aspects_ids(U_ids, self.n_aspects)
+        user_aspect_embeddings = self.users_aspects_embed(UA_ids)
+        
+        IA_ids = get_aspects_ids(I_ids, self.n_aspects)
+        item_aspect_embeddings = self.items_aspects_embed(IA_ids)
+        
+        _, attention = self.attn_u(user_embeddings, item_aspect_embeddings, user_aspect_embeddings)
+        return attention
+    
+
+    def get_item_attention_weights(
+        self,
+        U_ids: torch.Tensor,
+        I_ids: torch.Tensor,
+    ) -> torch.Tensor:
+        item_embeddings = self.items_embed(I_ids).unsqueeze(1)
+        IA_ids = get_aspects_ids(I_ids, self.n_aspects)
+        item_aspect_embeddings = self.items_aspects_embed(IA_ids)
+        
+        UA_ids = get_aspects_ids(U_ids, self.n_aspects)
+        user_aspect_embeddings = self.users_aspects_embed(UA_ids)
+        
+        _, attention = self.attn_i(item_embeddings, user_aspect_embeddings, item_aspect_embeddings)
+        return attention
 
 
 class RatingsLoss(nn.Module):
