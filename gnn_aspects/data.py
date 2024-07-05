@@ -12,15 +12,11 @@ import pandas as pd
 import torch
 from torch_geometric.data import Data
 from torch_geometric.utils import to_networkx
-from typing import Any, List, Tuple
+from tqdm import tqdm
+from typing import Any, Dict, List, Tuple
 
 
-def document2graph(
-    documents_df: pd.DataFrame, 
-    user_based: bool=True, 
-    args: Any=None
-) -> Tuple[Data, List[str]]:
-    
+def document2graph(documents_df: pd.DataFrame, user_based: bool=True, args: Any=None) -> Data:
     x = []
     node_name = []
     edge_index = []
@@ -33,11 +29,11 @@ def document2graph(
         x.append([1]) # aspect
         aspect = args.aspects[i - 1]
         node_name.append(aspect)
-        edge_index.append([0, i])
-        edge_index.append([i, 0])
         weight = (np.mean(documents_df[aspect]) - args.aspect_min_rating) / (args.aspect_max_rating - args.aspect_min_rating)
+        #edge_index.append([0, i])
+        edge_index.append([i, 0])
         edge_weight.append(weight)
-        edge_weight.append(weight)
+        #edge_weight.append(weight)
 
     last_index = len(x)
     for j, (_, row) in enumerate(documents_df.iterrows()):
@@ -60,6 +56,26 @@ def document2graph(
     return Data(num_nodes=len(x), x=x, edge_index=edge_index, edge_weight=edge_weight, node_name=node_name)
 
 
+def dataset2graphs(dataset_df: pd.DataFrame, args: Any) -> Tuple[Dict[str, Data], Dict[str, Data]]:
+    users = dataset_df["user_id"].unique()
+    users_graphs = dict()
+    for user_id in tqdm(users, desc="Creating user graphs", colour="green"):
+        user_df = dataset_df[dataset_df["user_id"] == user_id]
+        graph = document2graph(user_df, user_based=True, args=args)
+        users_graphs[user_id] = graph
+    
+    items = dataset_df["item_id"].unique()
+    items_graphs = dict()
+    for item_id in tqdm(items, desc="Creating item graphs", colour="green"):
+        item_df = dataset_df[dataset_df["item_id"] == item_id]
+        graph = document2graph(item_df, user_based=False, args=args)
+        items_graphs[item_id] = graph
+
+    return users_graphs, items_graphs
+
+
+
+
 def test(args: Any):
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
@@ -72,12 +88,14 @@ def test(args: Any):
 
     test_df = pd.read_csv(args.dataset_path)
 
+    users_graphs, items_graphs = dataset2graphs(test_df, args)
+
     item_id = 100542
     document = test_df[test_df["item_id"] == item_id]
     print(document.head(10))
     graph = document2graph(document, user_based=False, args=args)
 
-    G = to_networkx(graph, to_undirected=True)
+    G = to_networkx(graph)
     G = nx.relabel_nodes(G, dict(zip(range(len(graph.node_name)), graph.node_name)))
     plt.figure(figsize=(8, 6))
     pos = nx.spring_layout(G, seed=42)

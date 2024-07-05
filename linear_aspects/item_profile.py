@@ -12,8 +12,7 @@ from typing import Any
 class ItemProfileType(enum.Enum):
     AVERAGE     = 0
     WEIGHTED    = 1
-    USER_BASED  = 2
-    LEARNED     = 3
+    LEARNED     = 2
 
 
 class ItemProfile:
@@ -53,6 +52,32 @@ class AverageItemProfile(nn.Module, ItemProfile):
             items_parameters.index_add_(0, I_ids, A_ratings)
             counts = self.items_counters.clone()
             counts.index_add_(0, I_ids, torch.ones(len(I_ids)).to(I_ids.device))
+            items_parameters = items_parameters / torch.clamp(counts, min=1)[:, None]
+            self.items_parameters = items_parameters
+        A_ratings = self.get_items_parameters(I_ids)
+        predictions = torch.sum(A_weights * A_ratings, dim=1)
+        return predictions
+    
+
+class WeightedItemProfile(nn.Module, ItemProfile):
+
+    def __init__(self, n_items: int, args: Any):
+        ItemProfile.__init__(self, n_items, args)
+        nn.Module.__init__(self)
+        self.items_parameters = torch.zeros((self.n_items + 1, self.n_aspects))
+        self.items_counters = torch.zeros(self.n_items + 1)
+
+    def forward(
+        self, 
+        I_ids: torch.Tensor, 
+        A_weights: torch.Tensor,
+        A_ratings: torch.Tensor=None
+    ) -> torch.Tensor:
+        if A_ratings is not None:
+            items_parameters = self.items_parameters.clone() * self.items_counters[:, None]
+            items_parameters.index_add_(0, I_ids, A_ratings * A_weights[:, None])
+            counts = self.items_counters.clone()
+            counts.index_add_(0, I_ids, A_weights)
             items_parameters = items_parameters / torch.clamp(counts, min=1)[:, None]
             self.items_parameters = items_parameters
         A_ratings = self.get_items_parameters(I_ids)

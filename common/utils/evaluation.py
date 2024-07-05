@@ -90,6 +90,17 @@ def ratings_evaluation(predictions: List[float], references: List[float], args) 
     }
 
 
+def ratings_aspects_evaluation(
+        predictions: Dict[str, List[float]], 
+        references: Dict[str, List[float]], 
+        args
+    ) -> Dict[str, Dict]:
+    aspects_scores = {}
+    for aspect in predictions:
+        aspects_scores[aspect] = ratings_evaluation(predictions[aspect], references[aspect], args)
+    return aspects_scores
+
+
 def evaluate_fn(
     reviews_predictions: List[str], 
     reviews_references: List[str], 
