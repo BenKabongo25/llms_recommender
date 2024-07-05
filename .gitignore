@@ -1,3 +1,4 @@
 tests/
 logs/
-aspect_based/
+linear_aspects/
+gnn_aspects/
