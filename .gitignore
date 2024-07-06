@@ -1,4 +1,4 @@
-tests/
-logs/
-linear_aspects/
-gnn_aspects/
+tests
+logs
+linear_aspects
+gnn_aspects

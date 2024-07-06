@@ -166,7 +166,7 @@ if __name__ == "__main__":
     parser.set_defaults(verbose=True)
 
     parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
-    parser.add_argument("--dataset_name", type=str, default="TripAdvisor")
+    parser.add_argument("--dataset_name", type=str, default="RateBeer")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")

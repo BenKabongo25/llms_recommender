@@ -468,8 +468,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--base_dir", type=str, default="s")
-    parser.add_argument("--dataset_name", type=str, default="")
+    parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
+    parser.add_argument("--dataset_name", type=str, default="TripAdvisor")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
@@ -480,7 +480,7 @@ if __name__ == "__main__":
     parser.add_argument("--items_vocab_path", type=str, default="")
     parser.add_argument("--exp_name", type=str, default="")
     
-    parser.add_argument("--embedding_dim", type=int, default=128)
+    parser.add_argument("--embedding_dim", type=int, default=32)
     parser.add_argument("--padding_idx", type=int, default=0)
     parser.add_argument("--do_classification", action=argparse.BooleanOptionalAction)
     parser.set_defaults(do_classification=False)

@@ -42,24 +42,30 @@ def process_dataset(args):
     items_df_path = os.path.join(output_dir, "items.csv")
 
     data = []
-    users = []
-    items = []
+    users = {}
+    items = {}
 
     with open(args.dataset_file, 'r', encoding="utf-8") as fp:
         for line in tqdm(fp, args.dataset_name, colour="green", total=args.n_lines):
-            row = json.loads(line.strip())
+            try:
+                row = json.loads(line.strip())
+            except json.JSONDecodeError:
+                continue
+
             if not bool(row):
                 continue
-            
-            users.append(
-                dict(
+
+            user_id = row[columns["user_id"]]
+            item_id = row[columns["item_id"]]
+
+            if user_id not in users:  
+                users[user_id] = dict(
                     user_id=row[columns["user_id"]],
                     user_name=row[columns["user_name"]]
                 )
-            )
-
-            items.append(
-                dict(
+                
+            if item_id not in items:
+                items[item_id] = dict(
                     item_id=row[columns["item_id"]],
                     name=row[columns["item_name"]],
                     style=row[columns["style"]],
@@ -70,7 +76,6 @@ def process_dataset(args):
                         f'ABV: {row[columns["ABV"]]}'
                     )
                 )
-            )
 
             sample = dict(
                 user_id=row[columns["user_id"]],
@@ -92,8 +97,8 @@ def process_dataset(args):
             data.append(sample)
 
     data_df = pd.DataFrame(data)
-    users_df = pd.DataFrame(users)
-    items_df = pd.DataFrame(items)
+    users_df = pd.DataFrame(list(users.values()))
+    items_df = pd.DataFrame(list(items.values()))
 
     data_df.to_csv(data_df_path)
     users_df.to_csv(users_df_path)
@@ -161,10 +166,17 @@ def process_dataset(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("--dataset_file", type=str, default="") #"Datasets\\ASBA\\Beer\\ratebeer_.json"
-    parser.add_argument("--output_base_dir", type=str, default="") #"Datasets\\ASBA\\Beer"
-    parser.add_argument("--dataset_name", type=str, default="") #"RateBeer"
-    parser.add_argument("--n_lines", type=int, default=0) #2_778_708
+    #parser.add_argument("--dataset_file", type=str,
+    #                    default="Datasets\\raw\\Beer\\beeradvocate.json")
+    #parser.add_argument("--output_base_dir", type=str, default="Datasets\\processed")
+    #parser.add_argument("--dataset_name", type=str, default="BeerAdvocate")
+    #parser.add_argument("--n_lines", type=int, default=1_586_617)
+
+    parser.add_argument("--dataset_file", type=str,
+                        default="Datasets\\raw\\Beer\\ratebeer_.json")
+    parser.add_argument("--output_base_dir", type=str, default="Datasets\\processed")
+    parser.add_argument("--dataset_name", type=str, default="RateBeer")
+    parser.add_argument("--n_lines", type=int, default=2_800_000)
 
     parser.add_argument("--min_rating", type=float, default=1.0)
     parser.add_argument("--max_rating", type=float, default=5.0)

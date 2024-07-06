@@ -202,7 +202,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
-    parser.add_argument("--dataset_name", type=str, default="TripAdvisor")
+    parser.add_argument("--dataset_name", type=str, default="RateBeer")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp_name", type=str, default="")
     
     parser.add_argument("--aspects", type=str, 
-        default="service cleanliness value sleep_quality rooms location")
+        default="appearance aroma palate taste")
     parser.add_argument("--aspects_sep", type=str, default=" ")
     parser.add_argument("--user_profile_type", type=int, default=0)
     parser.add_argument("--item_profile_type", type=int, default=2)
