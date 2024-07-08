@@ -155,7 +155,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--algo", type=str, default="svd++") # svd, svd++, nmf
-    parser.add_argument("--n_factors", type=int, default=100)
+    parser.add_argument("--n_factors", type=int, default=32)
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--biased", action=argparse.BooleanOptionalAction)
     parser.set_defaults(biased=True)
@@ -166,12 +166,12 @@ if __name__ == "__main__":
     parser.set_defaults(verbose=True)
 
     parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
-    parser.add_argument("--dataset_name", type=str, default="RateBeer")
+    parser.add_argument("--dataset_name", type=str, default="TripAdvisor")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
-    parser.add_argument("--exp_name", type=str, default="")
+    parser.add_argument("--exp_name", type=str, default="mf_svd++")
     parser.add_argument("--train_size", type=float, default=0.8)
 
     parser.add_argument("--user_id_column", type=str, default="user_id")

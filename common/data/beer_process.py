@@ -18,7 +18,7 @@ def rescale(x, a, b, c, d):
 
 def process_dataset(args):
     columns = {
-        "user_id": "beer/brewerId",
+        "user_id": "review/profileName",
         "user_name": "review/profileName",
         "item_id": "beer/beerId",
         "item_name": "beer/name",
@@ -55,18 +55,18 @@ def process_dataset(args):
             if not bool(row):
                 continue
 
-            user_id = row[columns["user_id"]]
-            item_id = row[columns["item_id"]]
+            user_id = str(row[columns["user_id"]]).replace(" ", "_")
+            item_id = str(row[columns["item_id"]]).replace(" ", "_")
 
             if user_id not in users:  
                 users[user_id] = dict(
-                    user_id=row[columns["user_id"]],
+                    user_id=user_id,
                     user_name=row[columns["user_name"]]
                 )
                 
             if item_id not in items:
                 items[item_id] = dict(
-                    item_id=row[columns["item_id"]],
+                    item_id=item_id,
                     name=row[columns["item_name"]],
                     style=row[columns["style"]],
                     abv=row[columns["ABV"]],
@@ -78,8 +78,8 @@ def process_dataset(args):
                 )
 
             sample = dict(
-                user_id=row[columns["user_id"]],
-                item_id=row[columns["item_id"]],
+                user_id=user_id,
+                item_id=item_id,
                 timestamp=row[columns["timestamp"]],
                 review=row[columns["review"]]
             )

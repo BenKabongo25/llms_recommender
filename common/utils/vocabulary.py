@@ -4,6 +4,7 @@
 # Common - Vocabulary
 
 import json
+import pandas as pd
 from tqdm import tqdm
 from typing import *
 
@@ -50,3 +51,14 @@ class Vocabulary:
             self._elements2ids = data["elements2ids"]
             self._ids2elements = data["ids2elements"]
             self.n_elements = data["n_elements"]
+
+
+def create_vocab_from_df(metadata_df: pd.DataFrame, element_column: str) -> Vocabulary:
+    elements = metadata_df[element_column].unique()
+    vocab = Vocabulary()
+    vocab.add_elements(elements)
+    return vocab
+
+
+def to_vocab_id(element, vocabulary: Vocabulary) -> int:
+    return vocabulary.element2id(element)

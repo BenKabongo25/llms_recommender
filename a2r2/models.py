@@ -2,13 +2,12 @@
 # NLP & RecSys - July 2024
 
 # Attention and Aspect-based Rating and Review Prediction Model v1
-# A2R2-v1
+# A2R2-v1 & A2R2-v2 Models
 
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from typing import *
 
 
@@ -44,13 +43,14 @@ class AttentionLayer(nn.Module):
 def get_num_aspects_embeddings(n_elements: int, n_aspects: int) -> int:
     return n_elements * n_aspects + 1
 
+
 def get_aspects_ids(Ids: torch.Tensor, n_aspects: int) -> torch.Tensor:
     A_ids = (Ids - 1).unsqueeze(1) * n_aspects + torch.arange(n_aspects).to(Ids.device) + 1
     A_ids[A_ids < 0] = 0
     return A_ids
- 
 
-class A2R2v1(nn.Module):
+
+class A2R2(object):
 
     def __init__(
         self,
@@ -65,6 +65,29 @@ class A2R2v1(nn.Module):
         self.n_items = n_items 
         self.n_aspects = n_aspects
         self.args = args
+        assert (
+            not self.args.do_classification or 
+            (self.args.n_overall_ratings_classes > 1 and self.args.n_aspect_ratings_classes > 1)
+        )
+
+    def save(self, save_model_path: str):
+        torch.save(self.state_dict(), save_model_path)
+
+    def load(self, save_model_path: str):
+        self.load_state_dict(torch.load(save_model_path))
+ 
+
+class A2R2v1(A2R2, nn.Module):
+
+    def __init__(
+        self,
+        n_users: int,
+        n_items: int,
+        n_aspects: int,
+        args: Any
+    ):
+        A2R2.__init__(self, n_users, n_items, n_aspects, args)
+        nn.Module.__init__(self)
 
         self.users_embed = nn.Embedding(
             num_embeddings=self.n_users + 1,
@@ -81,31 +104,24 @@ class A2R2v1(nn.Module):
         self.attn_u = AttentionLayer(self.args)
 
         if self.args.mlp_ratings_flag:
-            overall_rating_n_classes = 1
-            aspect_rating_n_classes = 1
-
-            if self.args.do_classification:
-                overall_rating_n_classes = (self.args.max_rating - self.args.min_rating + 1)
-                aspect_rating_n_classes = (self.args.aspect_max_rating - self.args.aspect_min_rating + 1)
-
             self.mlp_overall_rating = nn.Sequential(
                 nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
                 nn.ReLU(),
-                nn.Linear(self.args.embedding_dim, overall_rating_n_classes)
+                nn.Linear(self.args.embedding_dim, self.args.n_overall_ratings_classes)
             )
 
             if self.args.mlp_aspect_shared_flag:
                 self.mlp_aspect_rating = nn.Sequential(
                     nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
                     nn.ReLU(),
-                    nn.Linear(self.args.embedding_dim, aspect_rating_n_classes)
+                    nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
                 )
             else:
                 self.mlp_aspect_rating = nn.ModuleList([
                     nn.Sequential(
                         nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
                         nn.ReLU(),
-                        nn.Linear(self.args.embedding_dim, aspect_rating_n_classes)
+                        nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
                     ) for _ in range(self.n_aspects)
                 ])
 
@@ -167,21 +183,17 @@ class A2R2v1(nn.Module):
         return attention
         
 
-class A2R2v2(nn.Module):
+class A2R2v2(A2R2, nn.Module):
 
     def __init__(
         self,
         n_users: int,
         n_items: int,
         n_aspects: int,
-        args: Any
+        args: Any,
     ):
-        super().__init__()
-
-        self.n_users = n_users
-        self.n_items = n_items 
-        self.n_aspects = n_aspects
-        self.args = args
+        A2R2.__init__(self, n_users, n_items, n_aspects, args)
+        nn.Module.__init__(self)
 
         self.users_embed = nn.Embedding(
             num_embeddings=self.n_users + 1,
@@ -211,31 +223,24 @@ class A2R2v2(nn.Module):
         self.attn_i = AttentionLayer(self.args)
 
         if self.args.mlp_ratings_flag:
-            overall_rating_n_classes = 1
-            aspect_rating_n_classes = 1
-
-            if self.args.do_classification:
-                overall_rating_n_classes = (self.args.max_rating - self.args.min_rating + 1)
-                aspect_rating_n_classes = (self.args.aspect_max_rating - self.args.aspect_min_rating + 1)
-
             self.mlp_overall_rating = nn.Sequential(
                 nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
                 nn.ReLU(),
-                nn.Linear(self.args.embedding_dim, overall_rating_n_classes)
+                nn.Linear(self.args.embedding_dim, self.args.n_overall_ratings_classes)
             )
             
             if self.args.mlp_aspect_shared_flag:
                 self.mlp_aspect_rating = nn.Sequential(
                     nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
                     nn.ReLU(),
-                    nn.Linear(self.args.embedding_dim, aspect_rating_n_classes)
+                    nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
                 )
             else:
                 self.mlp_aspect_rating = nn.ModuleList([
                     nn.Sequential(
                         nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
                         nn.ReLU(),
-                        nn.Linear(self.args.embedding_dim, aspect_rating_n_classes)
+                        nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
                     ) for _ in range(self.n_aspects)
                 ])
 

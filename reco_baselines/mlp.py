@@ -27,7 +27,7 @@ sys.path.insert(0, parent_dir)
 warnings.filterwarnings(action="ignore")
 
 from common.utils.evaluation import ratings_evaluation
-from common.utils.vocabulary import Vocabulary
+from common.utils.vocabulary import Vocabulary, create_vocab_from_df, to_vocab_id
 from common.utils.functions import set_seed
 
 
@@ -233,15 +233,36 @@ def trainer(model, train_dataloader, test_dataloader, args):
     return train_infos, test_infos
 
 
-def create_vocab_from_df(metadata_df: pd.DataFrame, element_column: str) -> Vocabulary:
-    elements = metadata_df[element_column].unique()
-    vocab = Vocabulary()
-    vocab.add_elements(elements)
-    return vocab
+def get_vocabularies(args):
+    metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
 
+    if "users_vocab.json" in os.listdir(metadata_dir):
+        args.users_vocab_path = os.path.join(metadata_dir, "users_vocab.json")
+    if args.users_vocab_path != "":
+        users_vocab = Vocabulary()
+        users_vocab.load(args.users_vocab_path)
+    else:
+        if args.users_path == "":
+            args.users_path = os.path.join(metadata_dir, "users.csv")
+        users_df = pd.read_csv(args.users_path)
+        users_df[args.user_id_column] = users_df[args.user_id_column].apply(str)
+        users_vocab = create_vocab_from_df(users_df, args.user_id_column)
+        users_vocab.save(os.path.join(args.dataset_dir, "users_vocab.json"))
 
-def to_vocab_id(element, vocabulary: Vocabulary) -> int:
-    return vocabulary.element2id(element)
+    if "items_vocab.json" in os.listdir(metadata_dir):
+        args.items_vocab_path = os.path.join(metadata_dir, "items_vocab.json")
+    if args.items_vocab_path != "":
+        items_vocab = Vocabulary()
+        items_vocab.load(args.items_vocab_path)
+    else:
+        if args.items_path == "":
+            args.items_path = os.path.join(metadata_dir, "items.csv")
+        items_df = pd.read_csv(args.items_path)
+        items_df[args.item_id_column] = items_df[args.item_id_column].apply(str)
+        items_vocab = create_vocab_from_df(items_df, args.item_id_column)
+        items_vocab.save(os.path.join(args.dataset_dir, "items_vocab.json"))
+
+    return users_vocab, items_vocab
 
 
 def main_train_test(args):
@@ -258,21 +279,17 @@ def main_train_test(args):
         data_df = data_df[[args.user_id_column, args.item_id_column, args.rating_column]]
         train_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
         test_df = data_df.drop(train_df.index)
+
+    train_df[args.user_id_column] = train_df[args.user_id_column].apply(str)
+    train_df[args.item_id_column] = train_df[args.item_id_column].apply(str)
+    test_df[args.user_id_column] = test_df[args.user_id_column].apply(str)
+    test_df[args.item_id_column] = test_df[args.item_id_column].apply(str)
     
     train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
     test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
 
-    metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
+    users_vocab, items_vocab = get_vocabularies(args)
 
-    if args.users_vocab_path != "":
-        users_vocab = Vocabulary()
-        users_vocab.load(args.users_vocab_path)
-    else:
-        if args.users_path == "":
-            args.users_path = os.path.join(metadata_dir, "users.csv")
-        users_df = pd.read_csv(args.users_path)
-        users_vocab = create_vocab_from_df(users_df, args.user_id_column)
-        users_vocab.save(os.path.join(args.dataset_dir, "users_vocab.json"))
     train_df[args.user_vocab_id_column] = train_df[args.user_id_column].apply(
         lambda u: to_vocab_id(u, users_vocab)
     )
@@ -280,15 +297,6 @@ def main_train_test(args):
         lambda u: to_vocab_id(u, users_vocab)
     )
 
-    if args.items_vocab_path != "":
-        items_vocab = Vocabulary()
-        items_vocab.load(args.items_vocab_path)
-    else:
-        if args.items_path == "":
-            args.items_path = os.path.join(metadata_dir, "items.csv")
-        items_df = pd.read_csv(args.items_path)
-        items_vocab = create_vocab_from_df(items_df, args.item_id_column)
-        items_vocab.save(os.path.join(args.dataset_dir, "items_vocab.json"))
     train_df[args.item_vocab_id_column] = train_df[args.item_id_column].apply(
         lambda i: to_vocab_id(i, items_vocab)
     ) 
@@ -366,32 +374,15 @@ def main_test(args):
         args.test_dataset_path = os.path.join(seen_dir, "test.csv")
 
     test_df = pd.read_csv(args.test_dataset_path)
+    test_df[args.user_id_column] = test_df[args.user_id_column].apply(str)
+    test_df[args.item_id_column] = test_df[args.item_id_column].apply(str)
     test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
 
-    metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
+    users_vocab, items_vocab = get_vocabularies(args)
 
-    if args.users_vocab_path != "":
-        users_vocab = Vocabulary()
-        users_vocab.load(args.users_vocab_path)
-    else:
-        if args.users_path == "":
-            args.users_path = os.path.join(metadata_dir, "users.csv")
-        users_df = pd.read_csv(args.users_path)
-        users_vocab = create_vocab_from_df(users_df, args.user_id_column)
-        users_vocab.save(os.path.join(args.dataset_dir, "users_vocab.json"))
     test_df[args.user_vocab_id_column] = test_df[args.user_id_column].apply(
         lambda u: to_vocab_id(u, users_vocab)
     )
-
-    if args.items_vocab_path != "":
-        items_vocab = Vocabulary()
-        items_vocab.load(args.items_vocab_path)
-    else:
-        if args.items_path == "":
-            args.items_path = os.path.join(metadata_dir, "items.csv")
-        items_df = pd.read_csv(args.items_path)
-        items_vocab = create_vocab_from_df(items_df, args.item_id_column)
-        items_vocab.save(os.path.join(args.dataset_dir, "items_vocab.json"))
     test_df[args.item_vocab_id_column] = test_df[args.item_id_column].apply(
         lambda i: to_vocab_id(i, items_vocab)
     )
@@ -469,7 +460,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
-    parser.add_argument("--dataset_name", type=str, default="TripAdvisor")
+    parser.add_argument("--dataset_name", type=str, default="RateBeer")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
@@ -478,7 +469,7 @@ if __name__ == "__main__":
     parser.add_argument("--items_path", type=str, default="")
     parser.add_argument("--users_vocab_path", type=str, default="")
     parser.add_argument("--items_vocab_path", type=str, default="")
-    parser.add_argument("--exp_name", type=str, default="")
+    parser.add_argument("--exp_name", type=str, default="mlp")
     
     parser.add_argument("--embedding_dim", type=int, default=32)
     parser.add_argument("--padding_idx", type=int, default=0)
@@ -488,19 +479,19 @@ if __name__ == "__main__":
     parser.add_argument("--min_rating", type=float, default=1.0)
     parser.add_argument("--max_rating", type=float, default=5.0)
     
-    parser.add_argument("--n_epochs", type=int, default=100)
+    parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
-    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--lr", type=float, default=0.005)
     
     parser.add_argument("--train_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(train_flag=True)
     parser.add_argument("--save_model_path", type=str, default="")
-    parser.add_argument("--save_every", type=int, default=10)
+    parser.add_argument("--save_every", type=int, default=1)
 
     parser.add_argument("--user_id_column", type=str, default="user_id")
     parser.add_argument("--item_id_column", type=str, default="item_id")
-    parser.add_argument("--rating_column", type=str, default="rating")
+    parser.add_argument("--rating_column", type=str, default="mlp")
     parser.add_argument("--user_vocab_id_column", type=str, default="user_vocab_id")
     parser.add_argument("--item_vocab_id_column", type=str, default="item_vocab_id")
     parser.add_argument("--random_state", type=int, default=42)
