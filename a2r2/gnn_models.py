@@ -1,8 +1,8 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# Attention and Aspect-based Rating and Review Prediction Model v1
-# A2R2-v1 & A2R2-v2 Models
+# Attention and Aspect-based Rating and Review GNN Prediction Model 
+# A2R2-v1-GNN & A2R2-v2-GNN Models
 
 
 import torch
@@ -10,67 +10,53 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import *
 
+from models import AttentionLayer, get_mlp
+from gnn_utils import get_gnn, has_edge_weight, has_edge_attr
 
-class AttentionLayer(nn.Module):
 
-    def __init__(self, args: Any):
-        super().__init__()
+class GNNModel(nn.Module):
 
+    def __init__(self, args):
+        super(GNNModel, self).__init__()
         self.args = args
+        GNN = get_gnn(self.args.gnn_name)
 
-        self.Wq = nn.Linear(self.args.embedding_dim, self.args.embedding_dim)
-        self.Wk = nn.Linear(self.args.embedding_dim, self.args.embedding_dim)
-        self.Wv = nn.Linear(self.args.embedding_dim, self.args.embedding_dim)
+        self._has_edge_weight = has_edge_weight(GNN)
+        self._has_edge_attr = has_edge_attr(GNN)
 
-    def forward(
-        self,
-        Q: torch.Tensor,
-        K: torch.Tensor,
-        V: torch.Tensor
-    ) -> torch.Tensor:
-        Q = self.Wq(Q)
-        K = self.Wk(K)
-        V = self.Wv(V)
+        modules = []
+        modules.append(GNN(in_channels=1, out_channels=self.args.embedding_dim))
+        for _ in range(1, args.n_layers - 1):
+            modules.append(GNN(in_channels=self.args.embedding_dim, out_channels=self.args.embedding_dim))
+        modules.append(GNN(in_channels=self.args.embedding_dim, out_channels=self.args.embedding_dim))
 
-        attention = F.softmax(
-            torch.matmul(Q, K.transpose(1, 2)) / torch.sqrt(torch.tensor(self.args.embedding_dim)),
-            dim=-1
-        )
-
-        return torch.matmul(attention, V), attention
+        self.gnns = nn.ModuleList(modules)
     
+    def forward(self, data):
+        edge_weight = data.edge_weight
+        edge_attr = None
+        if self._has_edge_attr:
+            edge_attr = edge_weight.unsqueeze(-1)
 
-def get_num_aspects_embeddings(n_elements: int, n_aspects: int) -> int:
-    return n_elements * n_aspects + 1
+        kwargs = {"x": data.x, "edge_index": data.edge_index}
+        if self._has_edge_weight:
+            kwargs["edge_weight"] = edge_weight
+        elif self._has_edge_attr:
+            kwargs["edge_attr"] = edge_attr
+
+        out = self.gnns[0](**kwargs)
+        for i in range(1, self.args.n_layers):
+            kwargs["x"] = out
+            out = F.relu(out)
+            out = self.gnns[i](**kwargs)
+        return out
 
 
-def get_aspects_ids(Ids: torch.Tensor, n_aspects: int) -> torch.Tensor:
-    A_ids = (Ids - 1).unsqueeze(1) * n_aspects + torch.arange(n_aspects).to(Ids.device) + 1
-    A_ids[A_ids < 0] = 0
-    return A_ids
+class A2R2GNN(object):
 
-
-def get_mlp(in_features: int, n_classes: int, factor: int=4) -> nn.Sequential:
-    return nn.Sequential(
-        nn.Linear(in_features, in_features // 2),
-        nn.ReLU(),
-        nn.Linear(in_features // 2, n_classes)
-    )
-
-
-class A2R2(object):
-
-    def __init__(
-        self,
-        n_users: int,
-        n_items: int,
-        n_aspects: int,
-        args: Any
-    ):
+    def __init__(self, n_aspects: int, args: Any):
         super().__init__()
 
-        self.n_users = n_users
-        self.n_items = n_items 
         self.n_aspects = n_aspects
         self.args = args
         assert (
@@ -85,29 +71,15 @@ class A2R2(object):
         self.load_state_dict(torch.load(save_model_path))
 
 
-class A2R2v1(A2R2, nn.Module):
 
-    def __init__(
-        self,
-        n_users: int,
-        n_items: int,
-        n_aspects: int,
-        args: Any
-    ):
-        A2R2.__init__(self, n_users, n_items, n_aspects, args)
+class A2R2v1GNN(A2R2GNN, nn.Module):
+
+    def __init__(self, n_aspects: int, args: Any):
+        A2R2GNN.__init__(self, n_aspects, args)
         nn.Module.__init__(self)
 
-        self.users_embed = nn.Embedding(
-            num_embeddings=self.n_users + 1,
-            embedding_dim=self.args.embedding_dim,
-            padding_idx=self.args.padding_idx
-        )
-
-        self.items_aspects_embed = nn.Embedding(
-            num_embeddings=get_num_aspects_embeddings(self.n_items, self.n_aspects),
-            embedding_dim=self.args.embedding_dim,
-            padding_idx=self.args.padding_idx
-        )
+        self.users_gnn = GNNModel(args)
+        self.items_gnn = GNNModel(args)
 
         self.attn_u = AttentionLayer(self.args)
 
@@ -133,12 +105,36 @@ class A2R2v1(A2R2, nn.Module):
 
     def forward(
         self,
-        U_ids: torch.Tensor,
-        I_ids: torch.Tensor,
+        U_graphs: torch.Tensor,
+        I_graphs: torch.Tensor,
     ) -> torch.Tensor:
-        user_embeddings = self.users_embed(U_ids).unsqueeze(1)
-        IA_ids = get_aspects_ids(I_ids, self.n_aspects)
-        item_aspect_embeddings = self.items_aspects_embed(IA_ids)
+        U_idx = torch.cumsum(
+            torch.cat(
+                [torch.zeros(1, device=self.args.device, dtype=int), U_graphs.y.flatten()[:-1]],
+                dim=0
+            ),
+            dim=0
+        )
+        I_idx = torch.cumsum(
+            torch.cat(
+                [torch.zeros(1, device=self.args.device, dtype=int), I_graphs.y.flatten()[:-1]],
+                dim=0
+            ),
+            dim=0
+        )
+        UA_idx = (
+            U_idx.unsqueeze(1) + torch.arange(1, self.n_aspects + 1, device=self.args.device)
+        ).flatten()
+        IA_idx = (
+            I_idx.unsqueeze(1) + torch.arange(1, self.n_aspects + 1, device=self.args.device)
+        ).flatten()
+
+        user_all_embeddings = self.users_gnn(U_graphs)
+        item_all_embeddings = self.items_gnn(I_graphs)
+
+        user_embeddings = user_all_embeddings[U_idx].unsqueeze(1)
+        item_aspect_embeddings = item_all_embeddings[IA_idx].view(-1, self.n_aspects, self.args.embedding_dim)
+
         item_user_embeddings, user_attn = self.attn_u(user_embeddings, item_aspect_embeddings, item_aspect_embeddings)
 
         user_embeddings = user_embeddings.squeeze(1)
@@ -165,7 +161,7 @@ class A2R2v1(A2R2, nn.Module):
                 aspect_ratings = torch.stack(aspect_ratings, dim=1)
 
             if self.args.do_classification:
-                aspect_ratings = aspect_ratings.view(len(U_ids), self.n_aspects, -1)
+                aspect_ratings = aspect_ratings.view(len(U_graphs), self.n_aspects, -1)
             else:
                 aspect_ratings = aspect_ratings.view(-1, self.n_aspects)
 
@@ -174,43 +170,16 @@ class A2R2v1(A2R2, nn.Module):
             aspect_ratings = torch.einsum("bd,bad->ba", user_embeddings, item_aspect_embeddings)
 
         return overall_rating, aspect_ratings, user_attn
-    
+        
 
-class A2R2v2(A2R2, nn.Module):
+class A2R2v2GNN(A2R2GNN, nn.Module):
 
-    def __init__(
-        self,
-        n_users: int,
-        n_items: int,
-        n_aspects: int,
-        args: Any,
-    ):
-        A2R2.__init__(self, n_users, n_items, n_aspects, args)
+    def __init__(self, n_aspects: int, args: Any):
+        A2R2GNN.__init__(self, n_aspects, args)
         nn.Module.__init__(self)
 
-        self.users_embed = nn.Embedding(
-            num_embeddings=self.n_users + 1,
-            embedding_dim=self.args.embedding_dim,
-            padding_idx=self.args.padding_idx
-        )
-
-        self.users_aspects_embed = nn.Embedding(
-            num_embeddings=get_num_aspects_embeddings(self.n_users, self.n_aspects),
-            embedding_dim=self.args.embedding_dim,
-            padding_idx=self.args.padding_idx
-        )
-
-        self.items_embed = nn.Embedding(
-            num_embeddings=self.n_items + 1,
-            embedding_dim=self.args.embedding_dim,
-            padding_idx=self.args.padding_idx
-        )
-
-        self.items_aspects_embed = nn.Embedding(
-            num_embeddings=get_num_aspects_embeddings(self.n_items, self.n_aspects),
-            embedding_dim=self.args.embedding_dim,
-            padding_idx=self.args.padding_idx
-        )
+        self.users_gnn = GNNModel(args)
+        self.items_gnn = GNNModel(args)
 
         self.attn_u = AttentionLayer(self.args)
         self.attn_i = AttentionLayer(self.args)
@@ -237,16 +206,38 @@ class A2R2v2(A2R2, nn.Module):
 
     def forward(
         self,
-        U_ids: torch.Tensor,
-        I_ids: torch.Tensor,
+        U_graphs: torch.Tensor,
+        I_graphs: torch.Tensor,
     ) -> torch.Tensor:
-        user_embeddings = self.users_embed(U_ids).unsqueeze(1)
-        UA_ids = get_aspects_ids(U_ids, self.n_aspects)
-        user_aspect_embeddings = self.users_aspects_embed(UA_ids)
+        U_idx = torch.cumsum(
+            torch.cat(
+                [torch.zeros(1, device=self.args.device), U_graphs.y.flatten()[:-1]],
+                dim=0
+            ),
+            dim=0
+        )
+        I_idx = torch.cumsum(
+            torch.cat(
+                [torch.zeros(1, device=self.args.device), I_graphs.y.flatten()[:-1]],
+                dim=0
+            ),
+            dim=0
+        )
+        UA_idx = (
+            U_idx.unsqueeze(1) + torch.arange(1, self.n_aspects + 1, device=self.args.device)
+        ).flatten()
+        IA_idx = (
+            I_idx.unsqueeze(1) + torch.arange(1, self.n_aspects + 1, device=self.args.device)
+        ).flatten()
 
-        item_embeddings = self.items_embed(I_ids).unsqueeze(1)
-        IA_ids = get_aspects_ids(I_ids, self.n_aspects)
-        item_aspect_embeddings = self.items_aspects_embed(IA_ids)
+        user_all_embeddings = self.users_gnn(U_graphs)
+        item_all_embeddings = self.items_gnn(I_graphs)
+
+        user_embeddings = user_all_embeddings[U_idx].unsqueeze(1)
+        user_aspect_embeddings = user_all_embeddings[UA_idx].view(-1, self.n_aspects, self.args.embedding_dim)
+
+        item_embeddings = item_all_embeddings[I_idx].unsqueeze(1)
+        item_aspect_embeddings = item_all_embeddings[IA_idx].view(-1, self.n_aspects, self.args.embedding_dim)
 
         item_user_embeddings, user_attn = self.attn_i(item_embeddings, user_aspect_embeddings, item_aspect_embeddings)
         user_item_embeddings, item_attn = self.attn_u(user_embeddings, item_aspect_embeddings, user_aspect_embeddings)
@@ -276,7 +267,7 @@ class A2R2v2(A2R2, nn.Module):
                 aspect_ratings = torch.stack(aspect_ratings, dim=1)
 
             if self.args.do_classification:
-                aspect_ratings = aspect_ratings.view(len(U_ids), self.n_aspects, -1)
+                aspect_ratings = aspect_ratings.view(len(U_graphs), self.n_aspects, -1)
             else:
                 aspect_ratings = aspect_ratings.view(-1, self.n_aspects)
 
@@ -285,42 +276,4 @@ class A2R2v2(A2R2, nn.Module):
             aspect_ratings = torch.einsum("bad,bad->ba", user_aspect_embeddings, item_aspect_embeddings)
 
         return overall_rating, aspect_ratings, (user_attn, item_attn)
-
-
-class RatingsLoss(nn.Module):
-
-    def __init__(self, args: Any):
-        super().__init__()
-        self.args = args
-
-        if self.args.do_classification:
-            self.overall_rating_loss = nn.CrossEntropyLoss(ignore_index=self.args.padding_idx)
-            self.aspect_rating_loss = nn.CrossEntropyLoss(ignore_index=self.args.padding_idx)
-        else:
-            self.overall_rating_loss = nn.MSELoss()
-            self.aspect_rating_loss = nn.MSELoss()
-
-    def forward(
-        self, 
-        R: torch.Tensor,
-        R_hat: torch.Tensor,
-        A_ratings: torch.Tensor,
-        A_ratings_hat: torch.Tensor,
-    ) -> Tuple[torch.Tensor]:
-        if self.args.do_classification:
-            # R_hat: (batch_size, n_classes) ; A_ratings_hat: (batch_size, n_aspects, n_classes)
-            R = R.long()
-            A_ratings = A_ratings.long()
-            overall_loss = self.overall_rating_loss(R_hat, R)
-            aspect_loss = self.aspect_rating_loss(
-                A_ratings_hat.view(-1, A_ratings_hat.size(-1)), 
-                A_ratings.view(-1)
-            )
-        else:
-            # R_hat: (batch_size) ; A_ratings_hat: (batch_size, n_aspects)
-            overall_loss = self.overall_rating_loss(R_hat, R)
-            aspect_loss = self.aspect_rating_loss(A_ratings_hat.flatten(), A_ratings.flatten())
-        return (
-            self.args.alpha * overall_loss + self.args.beta * aspect_loss, 
-            overall_loss, aspect_loss
-        )
+    
