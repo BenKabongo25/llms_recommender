@@ -42,7 +42,7 @@ def train_test(model, optimizer, dataloader, loss_fn, args, train=True):
         A_ratings = torch.stack(A_ratings, dim=1).to(dtype=torch.float32, device=args.device)
         R = torch.tensor(R, dtype=torch.float32).to(args.device)
   
-        R_hat, A_ratings_hat = model(U_ids, I_ids)
+        R_hat, A_ratings_hat, attn = model(U_ids, I_ids)
         R_hat = R_hat.squeeze()
         A_ratings_hat = A_ratings_hat.squeeze()
         loss, overall_loss, aspect_loss = loss_fn(R, R_hat, A_ratings, A_ratings_hat)
@@ -335,7 +335,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
+    parser.add_argument("--base_dir", type=str, default=os.path.join("datasets", "processed"))
     parser.add_argument("--dataset_name", type=str, default="TripAdvisor")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
@@ -345,10 +345,11 @@ if __name__ == "__main__":
     parser.add_argument("--items_path", type=str, default="")
     parser.add_argument("--users_vocab_path", type=str, default="")
     parser.add_argument("--items_vocab_path", type=str, default="")
-    parser.add_argument("--exp_name", type=str, default="a2r2v2")
+    parser.add_argument("--exp_name", type=str, default="")
     
     parser.add_argument("--aspects", type=str, 
         default="service cleanliness value sleep_quality rooms location")
+        #default="appearance aroma taste palate")
     parser.add_argument("--aspects_sep", type=str, default=" ")
     parser.add_argument("--embedding_dim", type=int, default=32)
     parser.add_argument("--padding_idx", type=int, default=0)
@@ -358,7 +359,7 @@ if __name__ == "__main__":
     parser.add_argument("--aspect_min_rating", type=float, default=1.0)
     parser.add_argument("--aspect_max_rating", type=float, default=5.0)
     
-    parser.add_argument("--model_version", type=int, default=2)
+    parser.add_argument("--model_version", type=int, default=1)
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
@@ -366,7 +367,7 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--beta", type=float, default=0.5)
     parser.add_argument("--mlp_ratings_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(mlp_ratings_flag=False)
+    parser.set_defaults(mlp_ratings_flag=True)
     parser.add_argument("--mlp_aspect_shared_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(mlp_aspect_shared_flag=False)
     parser.add_argument("--do_classification", action=argparse.BooleanOptionalAction)

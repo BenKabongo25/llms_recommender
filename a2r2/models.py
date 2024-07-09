@@ -50,6 +50,14 @@ def get_aspects_ids(Ids: torch.Tensor, n_aspects: int) -> torch.Tensor:
     return A_ids
 
 
+def get_mlp(in_features: int, n_classes: int, factor: int=4) -> nn.Sequential:
+    return nn.Sequential(
+        nn.Linear(in_features, in_features // 2),
+        nn.ReLU(),
+        nn.Linear(in_features // 2, n_classes)
+    )
+
+
 class A2R2(object):
 
     def __init__(
@@ -75,7 +83,7 @@ class A2R2(object):
 
     def load(self, save_model_path: str):
         self.load_state_dict(torch.load(save_model_path))
- 
+
 
 class A2R2v1(A2R2, nn.Module):
 
@@ -104,24 +112,21 @@ class A2R2v1(A2R2, nn.Module):
         self.attn_u = AttentionLayer(self.args)
 
         if self.args.mlp_ratings_flag:
-            self.mlp_overall_rating = nn.Sequential(
-                nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
-                nn.ReLU(),
-                nn.Linear(self.args.embedding_dim, self.args.n_overall_ratings_classes)
+            self.mlp_overall_rating = get_mlp(
+                in_features=2 * self.args.embedding_dim,
+                n_classes=self.args.n_overall_ratings_classes
             )
 
             if self.args.mlp_aspect_shared_flag:
-                self.mlp_aspect_rating = nn.Sequential(
-                    nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
-                    nn.ReLU(),
-                    nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
-                )
+                self.mlp_aspect_rating = get_mlp(
+                    in_features=2 * self.args.embedding_dim,
+                    n_classes=self.args.n_aspect_ratings_classes
+                )   
             else:
                 self.mlp_aspect_rating = nn.ModuleList([
-                    nn.Sequential(
-                        nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
-                        nn.ReLU(),
-                        nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
+                    get_mlp(
+                        in_features=2 * self.args.embedding_dim,
+                        n_classes=self.args.n_aspect_ratings_classes
                     ) for _ in range(self.n_aspects)
                 ])
 
@@ -134,7 +139,7 @@ class A2R2v1(A2R2, nn.Module):
         user_embeddings = self.users_embed(U_ids).unsqueeze(1)
         IA_ids = get_aspects_ids(I_ids, self.n_aspects)
         item_aspect_embeddings = self.items_aspects_embed(IA_ids)
-        item_user_embeddings, _ = self.attn_u(user_embeddings, item_aspect_embeddings, item_aspect_embeddings)
+        item_user_embeddings, user_attn = self.attn_u(user_embeddings, item_aspect_embeddings, item_aspect_embeddings)
 
         user_embeddings = user_embeddings.squeeze(1)
         item_user_embeddings = item_user_embeddings.squeeze(1)
@@ -168,7 +173,7 @@ class A2R2v1(A2R2, nn.Module):
             overall_rating = torch.einsum("bd,bd->b", user_embeddings, item_user_embeddings)
             aspect_ratings = torch.einsum("bd,bad->ba", user_embeddings, item_aspect_embeddings)
 
-        return overall_rating, aspect_ratings
+        return overall_rating, aspect_ratings, user_attn
     
 
     def get_user_attention_weights(
@@ -223,24 +228,21 @@ class A2R2v2(A2R2, nn.Module):
         self.attn_i = AttentionLayer(self.args)
 
         if self.args.mlp_ratings_flag:
-            self.mlp_overall_rating = nn.Sequential(
-                nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
-                nn.ReLU(),
-                nn.Linear(self.args.embedding_dim, self.args.n_overall_ratings_classes)
+            self.mlp_overall_rating = get_mlp(
+                in_features=2 * self.args.embedding_dim,
+                n_classes=self.args.n_overall_ratings_classes
             )
             
             if self.args.mlp_aspect_shared_flag:
-                self.mlp_aspect_rating = nn.Sequential(
-                    nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
-                    nn.ReLU(),
-                    nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
-                )
+                self.mlp_aspect_rating = get_mlp(
+                    in_features=2 * self.args.embedding_dim,
+                    n_classes=self.args.n_aspect_ratings_classes
+                )   
             else:
                 self.mlp_aspect_rating = nn.ModuleList([
-                    nn.Sequential(
-                        nn.Linear(2 * self.args.embedding_dim, self.args.embedding_dim),
-                        nn.ReLU(),
-                        nn.Linear(self.args.embedding_dim, self.args.n_aspect_ratings_classes)
+                    get_mlp(
+                        in_features=2 * self.args.embedding_dim,
+                        n_classes=self.args.n_aspect_ratings_classes
                     ) for _ in range(self.n_aspects)
                 ])
 
@@ -258,8 +260,8 @@ class A2R2v2(A2R2, nn.Module):
         IA_ids = get_aspects_ids(I_ids, self.n_aspects)
         item_aspect_embeddings = self.items_aspects_embed(IA_ids)
 
-        item_user_embeddings, _ = self.attn_i(item_embeddings, user_aspect_embeddings, item_aspect_embeddings)
-        user_item_embeddings, _ = self.attn_u(user_embeddings, item_aspect_embeddings, user_aspect_embeddings)
+        item_user_embeddings, user_attn = self.attn_i(item_embeddings, user_aspect_embeddings, item_aspect_embeddings)
+        user_item_embeddings, item_attn = self.attn_u(user_embeddings, item_aspect_embeddings, user_aspect_embeddings)
 
         user_embeddings = user_embeddings.squeeze(1)
         item_embeddings = item_embeddings.squeeze(1)
@@ -294,7 +296,7 @@ class A2R2v2(A2R2, nn.Module):
             overall_rating = torch.einsum("bd,bd->b", user_item_embeddings, item_user_embeddings)
             aspect_ratings = torch.einsum("bad,bad->ba", user_aspect_embeddings, item_aspect_embeddings)
 
-        return overall_rating, aspect_ratings
+        return overall_rating, aspect_ratings, (user_attn, item_attn)
     
 
     def get_user_attention_weights(
