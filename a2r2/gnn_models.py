@@ -46,8 +46,8 @@ class GNNModel(nn.Module):
 
         out = self.gnns[0](**kwargs)
         for i in range(1, self.args.n_layers):
-            kwargs["x"] = out
             out = F.relu(out)
+            kwargs["x"] = out
             out = self.gnns[i](**kwargs)
         return out
 
