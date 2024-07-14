@@ -40,6 +40,9 @@ def reviews_evaluation(predictions: List[str], references: List[str], args) -> D
     }
 
 
+text_evaluation = reviews_evaluation
+
+
 def ratings_evaluation(predictions: List[float], references: List[float], args) -> Dict:
     n_non_numerical = 0
     n_examples = len(predictions)
