@@ -94,10 +94,10 @@ with col3:
 U_ids = torch.tensor([user])
 I_ids = torch.tensor([item])
 
-overall_rating, aspects_ratings = model(U_ids, I_ids)
+overall_rating, aspects_ratings, aspects_importance = model(U_ids, I_ids)
 overall_rating = round(overall_rating.item(), 1)
 aspects_rating = list(map(lambda x: round(x, 1), aspects_ratings.squeeze().tolist()))
-aspects_importance = model.get_user_attention_weights(U_ids, I_ids).squeeze().tolist()
+aspects_importance = aspects_importance.squeeze().tolist()
 
 review = """Loperam ipsum dolor sit amet, consectetur adipiscing elit.
 Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
