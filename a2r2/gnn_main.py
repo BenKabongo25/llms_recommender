@@ -260,7 +260,7 @@ if __name__ == "__main__":
     parser.add_argument("--aspect_max_rating", type=float, default=5.0)
     
     parser.add_argument("--model_version", type=int, default=1)
-    parser.add_argument("--gnn_name", type=str, default="GCNConv")
+    parser.add_argument("--gnn_name", type=str, default="GATConv")
     parser.add_argument("--embedding_dim", type=int, default=32)
     parser.add_argument("--dropout", type=float, default=0.0)
     parser.add_argument("--n_layers", type=int, default=3)

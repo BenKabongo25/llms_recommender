@@ -174,6 +174,12 @@ class A2R2v1(A2R2, nn.Module):
             aspect_ratings = torch.einsum("bd,bad->ba", user_embeddings, item_aspect_embeddings)
 
         return overall_rating, aspect_ratings, user_attn
+
+    def get_regularized_parameters(self) -> list:
+        return [
+            self.users_embed.weight,
+            self.items_aspects_embed.weight
+        ]
     
 
 class A2R2v2(A2R2, nn.Module):
@@ -286,6 +292,15 @@ class A2R2v2(A2R2, nn.Module):
 
         return overall_rating, aspect_ratings, (user_attn, item_attn)
 
+    
+    def get_regularized_parameters(self) -> list:
+        return [
+            self.users_embed.weight,
+            self.users_aspects_embed.weight,
+            self.items_embed.weight,
+            self.items_aspects_embed.weight
+        ]
+
 
 class RatingsLoss(nn.Module):
 
@@ -306,6 +321,7 @@ class RatingsLoss(nn.Module):
         R_hat: torch.Tensor,
         A_ratings: torch.Tensor,
         A_ratings_hat: torch.Tensor,
+        *params_list: list,
     ) -> Tuple[torch.Tensor]:
         if self.args.do_classification:
             # R_hat: (batch_size, n_classes) ; A_ratings_hat: (batch_size, n_aspects, n_classes)
@@ -320,7 +336,10 @@ class RatingsLoss(nn.Module):
             # R_hat: (batch_size) ; A_ratings_hat: (batch_size, n_aspects)
             overall_loss = self.overall_rating_loss(R_hat, R)
             aspect_loss = self.aspect_rating_loss(A_ratings_hat.flatten(), A_ratings.flatten())
+        reg_loss = .0
+        for params in params_list:
+            reg_loss += torch.norm(params)
         return (
-            self.args.alpha * overall_loss + self.args.beta * aspect_loss, 
+            self.args.alpha * overall_loss + self.args.beta * aspect_loss + self.args.lambda_ * reg_loss, 
             overall_loss, aspect_loss
         )

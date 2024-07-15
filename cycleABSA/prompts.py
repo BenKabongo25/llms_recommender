@@ -58,29 +58,30 @@ def get_prompt(
     polarities: Tuple[str]=None,
     args: Any=None
 ) -> str:
-    prompt = prompts[args.task_name][args.absa_tuple]
+    prompt = prompts[args.task_name.value][args.absa_tuple.value]
     prompt = prompt.format(
         text=text,
-        annotations="(" + ", ".join(annotations) + ")" if annotations else "",
-        polarities="(" + ", ".join(polarities) + ")" if polarities else ""
+        annotations=annotations,
+        polarities=polarities
     )
     return prompt
 
 
 if __name__ == "__main__":
+    from enums import Task, AbsaTuple
     class Args:
         pass
 
     def test():
         args = Args()
-        args.task_name = "T2A"
-        args.absa_tuple = "acop"
+        args.task_name = Task.T2A
+        args.absa_tuple = AbsaTuple.ACOP
         text = "The battery life of this laptop is very good."
         prompt = get_prompt(text=text, args=args)
         print(prompt)
 
-        args.task_name = "A2T"
-        args.absa_tuple = "acop"
+        args.task_name = Task.A2T
+        args.absa_tuple = AbsaTuple.ACOP
         annotations = ("battery life", "quality", "good", "positive")
         prompt = get_prompt(annotations=annotations, args=args)
         print(prompt)

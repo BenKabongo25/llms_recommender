@@ -45,7 +45,9 @@ def train_test(model, optimizer, dataloader, loss_fn, args, train=True):
         R_hat, A_ratings_hat, attn = model(U_ids, I_ids)
         R_hat = R_hat.squeeze()
         A_ratings_hat = A_ratings_hat.squeeze()
-        loss, overall_loss, aspect_loss = loss_fn(R, R_hat, A_ratings, A_ratings_hat)
+        loss, overall_loss, aspect_loss = loss_fn(
+            R, R_hat, A_ratings, A_ratings_hat, *model.get_regularized_parameters()
+        )
         
         if train:
             optimizer.zero_grad()
@@ -363,9 +365,10 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
-    parser.add_argument("--lr", type=float, default=0.005)
-    parser.add_argument("--alpha", type=float, default=0.5)
+    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--alpha", type=float, default=0.3)
     parser.add_argument("--beta", type=float, default=0.5)
+    parser.add_argument("--lambda_", type=float, default=0.2)
     parser.add_argument("--mlp_ratings_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(mlp_ratings_flag=True)
     parser.add_argument("--mlp_aspect_shared_flag", action=argparse.BooleanOptionalAction)

@@ -6,9 +6,11 @@
 import ast
 import pandas as pd
 import pytorch_lightning as pl
+import torch
 
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 from transformers import T5Tokenizer
 from typing import *
 
@@ -29,7 +31,7 @@ class T5ABSADataset(Dataset):
         self.tokenizer = tokenizer
         self.input_texts = data_df[args.input_column].tolist()
         self.target_texts = data_df[args.target_column].tolist()
-        self.aspects_annotations = data_df[args.aspects_annotations_column].apply(ast.literal_eval).tolist()
+        self.aspects_annotations = data_df[args.annotations_column].apply(ast.literal_eval).tolist()
         self.args = args
 
         self.input_ids = []
@@ -39,10 +41,10 @@ class T5ABSADataset(Dataset):
         self._build()
 
     def __len__(self):
-        return len(self.inputs)
+        return len(self.input_texts)
     
     def _build(self):
-        for idx in range(len(self.input_texts)):
+        for idx in tqdm(range(len(self.input_texts)), "Prepare data", colour="green"):
             input_text = self.input_texts[idx]
             target_text = self.target_texts[idx]
             annotations = self.aspects_annotations[idx]
@@ -53,6 +55,9 @@ class T5ABSADataset(Dataset):
                 target_text = preprocess_text(target_text, self.args, self.args.max_target_length)
 
             input_text = get_prompt(text=input_text, annotations=annotations, args=self.args)
+            self.input_texts[idx] = input_text
+            self.target_texts[idx] = target_text
+            
             input = self.tokenizer(
                 input_text, 
                 max_length=self.args.max_input_length,
@@ -60,8 +65,8 @@ class T5ABSADataset(Dataset):
                 truncation=True,
                 return_tensors="pt"
             )
-            input_ids = input["input_ids"].squeeze()
-            attention_mask = input["attention_mask"].squeeze()
+            input_ids = input["input_ids"]
+            attention_mask = input["attention_mask"]
 
             target = self.tokenizer(
                 target_text, 
@@ -70,7 +75,7 @@ class T5ABSADataset(Dataset):
                 truncation=True,
                 return_tensors="pt"
             )
-            labels = target["input_ids"].squeeze()
+            labels = target["input_ids"]
             labels[labels == self.tokenizer.pad_token_id] = -100
 
             self.input_ids.append(input_ids)
@@ -84,11 +89,19 @@ class T5ABSADataset(Dataset):
         attention_mask = self.attention_masks[idx]
         labels = self.labels[idx]
         annotations = self.aspects_annotations[idx]
-        return input_text, target_text, input_ids, attention_mask, labels, annotations
+        #return input_text, target_text, input_ids, attention_mask, labels, annotations
+        return {
+            "input_texts": input_text,
+            "target_texts": target_text,
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "labels": labels,
+            "annotations": annotations
+        }
         
 
 def get_train_val_test_df(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    if args.train_dataset_path is not None and args.test_dataset_path is not None:
+    if args.train_dataset_path != "" and args.test_dataset_path != "":
         train_df = pd.read_csv(args.train_dataset_path)
         test_df = pd.read_csv(args.test_dataset_path)
         if args.val_dataset_path is not None:
@@ -112,6 +125,15 @@ def get_train_val_test_df(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Dat
             random_state=args.random_state
         )
     return train_df, val_df, test_df
+
+
+def collate_fn(batch):
+    collated_batch = {}
+    for key in batch[0]:
+        collated_batch[key] = [d[key] for d in batch]
+        if isinstance(collated_batch[key][0], torch.Tensor):
+            collated_batch[key] = torch.cat(collated_batch[key], 0)
+    return collated_batch
 
 
 class T5DataModule(pl.LightningDataModule):
