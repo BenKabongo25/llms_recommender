@@ -6,12 +6,12 @@
 import enum
 
 
-class Task(enum.Enum):
+class TaskType(enum.Enum):
     T2A = "T2A"     # Text to aspects
     A2T = "A2T"     # Aspects to text
 
 
-class AbsaTuple(enum.Enum):
+class AbsaTupleType(enum.Enum):
     A = "a"         # aspect terms
     C = "c"         # aspect categories
     O = "o"         # opinion terms
@@ -27,3 +27,9 @@ class AbsaTuple(enum.Enum):
     AOP = "aop"
     COP = "cop"
     ACOP = "acop"
+
+
+class AnnotationsTextFormerType(enum.Enum):
+    GAS_EXTRACTION_STYLE = "gas_extraction_style"
+    GAS_ANNOTATION_STYLE = "gas_annotation_style"
+    PARAPHRASE           = "paraphrase"

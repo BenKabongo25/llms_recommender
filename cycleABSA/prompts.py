@@ -8,7 +8,6 @@ from typing import Any, Tuple
 
 prompts = {
     "T2A": {
-
         "a": "Extract all aspect terms from the following text: {text}",
         "c": "Extract all aspect categories from the following text: {text}",
         "o": "Extract all opinion terms from the following text: {text}",
@@ -26,7 +25,7 @@ prompts = {
         "aop": "Extract triples of aspect terms, opinion terms, and sentiment polarities {polarities} from the following text: {text}",
         "cop": "Extract triples of aspect categories, opinion terms, and sentiment polarities {polarities} from the following text: {text}",
 
-        "acop": "Extract quadruples of aspect terms, aspect categories, opinion terms, and sentiment polarities {polarities} from the following text: {text}",
+        "acop": "Extract quadruples of aspect terms, aspect categories, opinion terms, and sentiment polarities {polarities} from the following text: {text}"
     },
 
     "A2T": {
@@ -58,7 +57,7 @@ def get_prompt(
     polarities: Tuple[str]=None,
     args: Any=None
 ) -> str:
-    prompt = prompts[args.task_name.value][args.absa_tuple.value]
+    prompt = prompts[args.task_type.value][args.absa_tuple.value]
     prompt = prompt.format(
         text=text,
         annotations=annotations,
@@ -68,20 +67,20 @@ def get_prompt(
 
 
 if __name__ == "__main__":
-    from enums import Task, AbsaTuple
+    from enums import TaskType, AbsaTupleType
     class Args:
         pass
 
     def test():
         args = Args()
-        args.task_name = Task.T2A
-        args.absa_tuple = AbsaTuple.ACOP
+        args.task_type = TaskType.T2A
+        args.absa_tuple = AbsaTupleType.ACOP
         text = "The battery life of this laptop is very good."
         prompt = get_prompt(text=text, args=args)
         print(prompt)
 
-        args.task_name = Task.A2T
-        args.absa_tuple = AbsaTuple.ACOP
+        args.task_type = TaskType.A2T
+        args.absa_tuple = AbsaTupleType.ACOP
         annotations = ("battery life", "quality", "good", "positive")
         prompt = get_prompt(annotations=annotations, args=args)
         print(prompt)

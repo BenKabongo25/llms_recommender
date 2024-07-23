@@ -19,44 +19,50 @@ import torch
 
 from nltk.stem.snowball import EnglishStemmer
 from nltk.stem import WordNetLemmatizer
-from typing import Any, List, Tuple
+from typing import *
 
 
-EXTRACTION_STYLE_ELEMENTS_SEPARATOR = ";"
-EXTRACTION_STYLE_ELEMENT_BEGIN = "("
-EXTRACTION_STYLE_ELEMENT_END = ")"
-EXTRACTION_STYLE_ELEMENT_SEPARATOR = ","
+class AbsaData(object):
 
-ANNOTATION_STYLE_ELEMENT_BEGIN = "["
-ANNOTATION_STYLE_ELEMENT_END = "]"
-ANNOTATION_STYLE_ELEMENT_SEPARATOR = "|"
+    SENTIMENT_PARAPHRASE_DEFAULT = {
+        "very positive": "very great",
+        "positive": "great",
+        "neutral": "ok",
+        "negative": "bad",
+        "very negative": "very bad"
+    }
+
+    def __init__(
+        self,
+        aspects_categories: List[str]=[],
+        aspects_terms: Optional[Dict[str, List[str]]]={},
+        sentiment_polarities: Union[int, List[str]]=3,
+        sentiment_paraphrases: Dict[str, str]={},
+    ):
+        self.aspects_categories = aspects_categories
+        self.aspects_terms = aspects_terms
+
+        self.sentiment_polarities = []
+        if sentiment_paraphrases == {}:
+            sentiment_paraphrases = AbsaData.SENTIMENT_PARAPHRASE_DEFAULT
+        self.sentiment_paraphrases_kv = sentiment_paraphrases
+        self.sentiment_paraphrases_vk = dict(
+            list(map(lambda kv: (kv[1],kv[0]), self.sentiment_paraphrases_kv.items()))
+        )
+        self.set_sentiment_polarities(sentiment_polarities)
 
 
-def get_elements_from_extraction_style(text: str) -> List[Tuple[str]]:
-    elements = []
-    for element_text in text.split(";"):
-        element_text = element_text.strip()
-        if not element_text.startswith("(") and element_text.endswith(")"):
-            continue
-        element_text = element_text[1:-1]
-        element = tuple(element_text.split(","))
-        elements.append(element)
-    return elements
-
-
-def get_elements_from_annotation_style(text: str) -> List[Tuple[str]]:
-    elements = []
-    # TODO: Implement the function
-    return elements
-
-
-def get_annotations(text: str, args: Any) -> List[Tuple[str]]:
-    if args.annotation_style == "extraction":
-        return get_elements_from_extraction_style(text)
-    elif args.annotation_style == "annotation":
-        return get_elements_from_annotation_style(text)
-    else:
-        raise ValueError(f"Unknown annotation style: {args.annotation_style}")
+    def set_sentiment_polarities(self, sentiment_polarities: Union[int, List[str]]):
+        if isinstance(sentiment_polarities, int):
+            assert sentiment_polarities in {2, 3, 5}, "Invalid sentiment polarity value"
+            if sentiment_polarities == 2:
+                sentiment_polarities = ["positive", "negative"]
+            elif sentiment_polarities == 3:
+                sentiment_polarities = ["positive", "neutral", "negative"]
+            elif sentiment_polarities == 5:
+                sentiment_polarities = ["very positive", "positive", "neutral", "negative", "very negative"]
+        
+        self.sentiment_polarities = sentiment_polarities
 
 
 def set_seed(args):

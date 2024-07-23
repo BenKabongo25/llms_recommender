@@ -7,14 +7,11 @@ import evaluate
 import numpy as np
 from typing import *
 
-from utils import get_annotations
+from annotations_text import AnnotationsTextFormerBase
+from enums import TaskType
 
 
-def text_evaluation(
-    predictions: List[str], 
-    references: List[str], 
-    args: Any
-) -> Dict[str, Any]:
+def text_evaluation(predictions: List[str], references: List[str], args: Any) -> Dict[str, Any]:
     references_list = [[ref] for ref in references]
 
     bleu_metric = evaluate.load("bleu")
@@ -67,6 +64,8 @@ def aspect_evaluation(
 
     return {
         "n_examples": len(predictions),
+        "n_pred": N_pred,
+        "n_true": N_true,
         "precision": precision,
         "recall": recall,
         "f1": f1
@@ -75,13 +74,30 @@ def aspect_evaluation(
 
 def get_evaluation_scores(
     predictions: List[str], 
-    references: List[str], 
+    references: Union[List[str], List[List[Tuple[str]]]], 
     annotations: List[List[Tuple[str]]],
+    annotations_text_former: AnnotationsTextFormerBase, 
     args: Any
 ) -> Dict[str, Dict]:
-    if args.task_name == "A2T":
+    if args.task_type == TaskType.A2T:
         scores = text_evaluation(predictions, references, args)
     else: # args.task_name == "T2A"
-        predictions = [get_annotations(pred, args) for pred in predictions]
+        predictions = [
+            annotations_text_former.multiple_text_to_annotations(pred)
+            for pred in predictions
+        ]
         scores = aspect_evaluation(predictions, annotations, args)
     return scores
+
+
+if __name__ == "__main__":
+    def test():
+        pred = [[('atmosphere', 'ambience general', 'positive', 'relaxed')]]
+        true = [[
+            ('atmosphere', 'ambience general', 'positive', 'relaxed'),
+            ('atmosphere&', 'ambience general', 'positive', 'relaxed')
+        ]]
+        scores = aspect_evaluation(pred, true, None)
+        print(scores)
+
+    test()

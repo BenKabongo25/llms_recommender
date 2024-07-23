@@ -8,15 +8,17 @@ import json
 import os
 import torch
 import torch.nn as nn
+
 from torch.utils.data import DataLoader
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 from tqdm import tqdm
 from typing import *
 
+from annotations_text import AnnotationsTextFormerBase
 from data import T5ABSADataset, collate_fn, get_train_val_test_df
-from enums import Task, AbsaTuple
+from enums import TaskType, AbsaTupleType, AnnotationsTextFormerType
 from eval import get_evaluation_scores
-from utils import set_seed
+from utils import AbsaData, set_seed
 
 
 def save_model(model, path: str):
@@ -27,7 +29,16 @@ def load_model(model, path: str):
     model.load_state_dict(torch.load(path))
 
 
-def train_test(model, tokenizer, optimizer, dataloader, args, train_flag=True, epoch=-1):
+def train_test(
+    model, 
+    tokenizer, 
+    annotations_text_former, 
+    optimizer, 
+    dataloader, 
+    args,
+    train_flag=True, 
+    epoch=-1
+):
     references = []
     predictions = []
     all_annotations = []
@@ -63,26 +74,47 @@ def train_test(model, tokenizer, optimizer, dataloader, args, train_flag=True, e
         predictions.extend(output_texts)
         all_annotations.extend(annotations)
 
-        if batch_idx == 0 and args.verbose and args.verbose_every % epoch == 0:
+        if batch_idx == 0 and args.verbose and epoch % args.verbose_every == 0:
             input_texts = batch["input_texts"]
             log = "=" * 100
-            log += f"Epoch {epoch}/{args.n_epochs}"
+            is_train = "Train" if train_flag else "Eval"
+            log += f"\n{is_train}: Epoch {epoch}/{args.n_epochs}"
             for i in range(len(input_texts)):
                 log += f"\nInput: {input_texts[i]}"
                 log += f"\nTarget: {target_texts[i]}"
                 log += f"\nAnnotations: {annotations[i]}"
-                log += f"\nOutput: {output_texts[i]}\n"
+                log += f"\nOutput: {output_texts[i]}"
+                if args.task_type is TaskType.T2A:
+                    log += (
+                        f"\nOutput annotations: "
+                        f"{annotations_text_former.multiple_text_to_annotations(output_texts[i])}"
+                    )
+                log += "\n"
+                
             print("\n" + log)
             with open(args.log_file_path, "w", encoding="utf-8") as log_file:
                 log_file.write(log)
 
     running_loss /= len(dataloader)
-    scores = get_evaluation_scores(predictions, references, all_annotations, args)
+    scores = get_evaluation_scores(
+        predictions, 
+        references, 
+        all_annotations, 
+        annotations_text_former,
+        args
+    )
 
     return {"loss": running_loss, **scores}
 
 
-def trainer(model, tokenizer, train_dataloader, test_dataloader, args):
+def trainer(
+    model, 
+    tokenizer, 
+    annotations_text_former, 
+    train_dataloader, 
+    test_dataloader, 
+    args
+):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     train_infos = {}
@@ -90,9 +122,28 @@ def trainer(model, tokenizer, train_dataloader, test_dataloader, args):
 
     progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
     for epoch in progress_bar:
-        train_epoch_infos = train_test(model, tokenizer, optimizer, train_dataloader, args, True, epoch)
+        train_epoch_infos = train_test(
+            model, 
+            tokenizer, 
+            annotations_text_former, 
+            optimizer, 
+            train_dataloader, 
+            args, 
+            True, 
+            epoch
+        )
+
         with torch.no_grad():
-            test_epoch_infos = train_test(model, tokenizer, None, test_dataloader, args, False, epoch)
+            test_epoch_infos = train_test(
+                model, 
+                tokenizer, 
+                annotations_text_former, 
+                None, 
+                test_dataloader, 
+                args, 
+                False, 
+                epoch
+            )
 
         for metric in train_epoch_infos:
             if metric not in train_infos:
@@ -121,24 +172,31 @@ def main(args):
 
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
-    
+
+    args.task_type = TaskType(args.task_type)
+    args.absa_tuple = AbsaTupleType(args.absa_tuple)
+    args.annotations_text_type = AnnotationsTextFormerType(args.annotations_text_type)
+
+    absa_data = AbsaData()
+    annotations_text_former = AnnotationsTextFormerBase.get_annotations_text_former(args, absa_data)
+
     tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
 
     train_df, val_df, test_df = get_train_val_test_df(args)
     
-    train_dataset = T5ABSADataset(tokenizer, train_df, args)
+    train_dataset = T5ABSADataset(tokenizer, annotations_text_former, train_df, args)
     train_dataloader = DataLoader(
         train_dataset, 
         batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn
     )
 
-    val_dataset = T5ABSADataset(tokenizer, val_df, args)
+    val_dataset = T5ABSADataset(tokenizer, annotations_text_former, val_df, args)
     val_dataloader = DataLoader(
         val_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
     )
 
-    test_dataset = T5ABSADataset(tokenizer, test_df, args)
+    test_dataset = T5ABSADataset(tokenizer, annotations_text_former, test_df, args)
     test_dataloader = DataLoader(
         test_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
@@ -154,13 +212,15 @@ def main(args):
 
     if args.exp_name == "":
         args.exp_name = (
-            f"{args.model_name_or_path}_{args.time_id}"
+            f"{args.model_name_or_path}_{args.task_type.value}_{args.absa_tuple.value}_"
+            f"{args.annotations_text_type.value}_{args.time_id}"
         )
     
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
     exps_base_dir = os.path.join(args.dataset_dir, "exps")
     exp_dir = os.path.join(exps_base_dir, args.exp_name)
     os.makedirs(exp_dir, exist_ok=True)
+    args.exp_dir = exp_dir
     args.log_file_path = os.path.join(exp_dir, "log.txt")
     args.res_file_path = os.path.join(exp_dir, "res.json")
 
@@ -181,7 +241,9 @@ def main(args):
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
-            f"Task: {args.task_name}\n" +
+            f"Task: {args.task_type}\n" +
+            f"Tuple: {args.absa_tuple}\n" +
+            f"Annotations: {args.annotations_text_type}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n" +
             f"Arguments:\n{args}\n" +
@@ -192,9 +254,26 @@ def main(args):
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
 
-    train_infos, val_infos = trainer(model, tokenizer, train_dataloader, val_dataloader, args)
+    train_infos, val_infos = trainer(
+        model, 
+        tokenizer, 
+        annotations_text_former, 
+        train_dataloader, 
+        val_dataloader, 
+        args
+    )
+
     with torch.no_grad():
-        test_infos = train_test(model, tokenizer, None, test_dataloader, args, train_flag=False)
+        test_infos = train_test(
+            model, 
+            tokenizer, 
+            annotations_text_former, 
+            None, 
+            test_dataloader, 
+            args, 
+            train_flag=False
+        )
+    
     results = {"test": test_infos, "train": train_infos, "val": val_infos}
     with open(args.res_file_path, "w") as res_file:
         json.dump(results, res_file)
@@ -203,15 +282,24 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model_name_or_path", type=str, default="google/flan-t5-base")
-    parser.add_argument("--tokenizer_name_or_path", type=str, default="google/flan-t5-base")
-    parser.add_argument("--max_input_length", type=int, default=256)
+    parser.add_argument("--model_name_or_path", type=str, default="t5-base")
+    parser.add_argument("--tokenizer_name_or_path", type=str, default="t5-base")
+    parser.add_argument("--max_input_length", type=int, default=128)
     parser.add_argument("--max_target_length", type=int, default=128)
 
+    parser.add_argument("--task_type", type=str, default=TaskType.T2A.value)
+    parser.add_argument("--absa_tuple", type=str, default=AbsaTupleType.ACOP.value)
+    parser.add_argument("--annotations_text_type", type=str, 
+        default=AnnotationsTextFormerType.GAS_EXTRACTION_STYLE.value)
+    parser.add_argument("--text_column", type=str, default="text")
+    parser.add_argument("--annotations_column", type=str, default="annotations")
+    parser.add_argument("--prompt_flag", action=argparse.BooleanOptionalAction)
+    parser.set_defaults(prompt_flag=False)
+
     parser.add_argument("--base_dir", type=str, default=os.path.join("datasets", "absa"))
-    parser.add_argument("--dataset_name", type=str, default="Rest15")
-    parser.add_argument("--dataset_dir", type=str, default=os.path.join("datasets", "absa", "Rest15"))
-    parser.add_argument("--dataset_path", type=str, default=os.path.join("datasets", "absa", "Rest15", "data.csv"))
+    parser.add_argument("--dataset_name", type=str, default="Rest16")
+    parser.add_argument("--dataset_dir", type=str, default=os.path.join("datasets", "absa", "Rest16"))
+    parser.add_argument("--dataset_path", type=str, default=os.path.join("datasets", "absa", "Rest16", "data.csv"))
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--val_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
@@ -237,13 +325,6 @@ if __name__ == "__main__":
     parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(save_data_flag=False)
     parser.add_argument("--save_data_dir", type=str, default="")
-
-    parser.add_argument("--task_name", type=str, default=Task.T2A)
-    parser.add_argument("--absa_tuple", type=str, default=AbsaTuple.ACOP)
-    parser.add_argument("--input_column", type=str, default="text")
-    parser.add_argument("--target_column", type=str, default="annotations")
-    parser.add_argument("--annotation_style", type=str, default="extraction")
-    parser.add_argument("--annotations_column", type=str, default="annotations")
 
     parser.add_argument("--truncate_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(truncate_flag=True)

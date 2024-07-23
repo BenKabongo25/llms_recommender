@@ -14,7 +14,8 @@ from tqdm import tqdm
 from transformers import T5Tokenizer
 from typing import *
 
-from enums import Task
+from annotations_text import AnnotationsTextFormerBase
+from enums import TaskType
 from prompts import get_prompt
 from utils import preprocess_text
 
@@ -23,16 +24,22 @@ class T5ABSADataset(Dataset):
 
     def __init__(
         self,
-        tokenizer: T5Tokenizer, 
+        tokenizer: T5Tokenizer,
+        annotations_text_former: AnnotationsTextFormerBase, 
         data_df: pd.DataFrame,
         args: Any
     ):
         super().__init__()
+
         self.tokenizer = tokenizer
-        self.input_texts = data_df[args.input_column].tolist()
-        self.target_texts = data_df[args.target_column].tolist()
-        self.aspects_annotations = data_df[args.annotations_column].apply(ast.literal_eval).tolist()
+        self.annotations_text_former = annotations_text_former
+
+        self.texts = data_df[args.text_column].tolist()
+        self.annotations = data_df[args.annotations_column].apply(ast.literal_eval).tolist()
         self.args = args
+
+        self.input_texts = []
+        self.target_texts = []
 
         self.input_ids = []
         self.attention_masks = []
@@ -41,22 +48,31 @@ class T5ABSADataset(Dataset):
         self._build()
 
     def __len__(self):
-        return len(self.input_texts)
-    
+        return len(self.texts)
+
     def _build(self):
-        for idx in tqdm(range(len(self.input_texts)), "Prepare data", colour="green"):
-            input_text = self.input_texts[idx]
-            target_text = self.target_texts[idx]
-            annotations = self.aspects_annotations[idx]
+        for idx in tqdm(range(len(self)), "Prepare data", colour="green"):
+            text = preprocess_text(self.texts[idx], self.args)
+            annotations = self.annotations[idx]
+            annotations = [tuple([preprocess_text(t, self.args) for t in ann]) for ann in annotations]
+            self.annotations[idx] = annotations
 
-            if self.args.task_name is Task.T2A:
-                input_text = preprocess_text(input_text, self.args, self.args.max_input_length)
+            annotations_text = self.annotations_text_former.multiple_annotations_to_text(annotations)
+
+            if self.args.task_type is TaskType.T2A:
+                input_text = text
+                target_text = annotations_text
             else:
-                target_text = preprocess_text(target_text, self.args, self.args.max_target_length)
+                input_text = annotations_text
+                target_text = text
 
-            input_text = get_prompt(text=input_text, annotations=annotations, args=self.args)
-            self.input_texts[idx] = input_text
-            self.target_texts[idx] = target_text
+            if self.args.prompt_flag:
+                input_text = get_prompt(
+                    text=input_text, 
+                    annotations=annotations, 
+                    polarities=self.annotations_text_former.absa_data.sentiment_polarities,
+                    args=self.args
+                )
             
             input = self.tokenizer(
                 input_text, 
@@ -78,6 +94,8 @@ class T5ABSADataset(Dataset):
             labels = target["input_ids"]
             labels[labels == self.tokenizer.pad_token_id] = -100
 
+            self.input_texts.append(input_text)
+            self.target_texts.append(target_text)
             self.input_ids.append(input_ids)
             self.attention_masks.append(attention_mask)
             self.labels.append(labels)
@@ -85,19 +103,29 @@ class T5ABSADataset(Dataset):
     def __getitem__(self, idx):
         input_text = self.input_texts[idx]
         target_text = self.target_texts[idx]
+        annotations = self.annotations[idx]
+
         input_ids = self.input_ids[idx]
         attention_mask = self.attention_masks[idx]
         labels = self.labels[idx]
-        annotations = self.aspects_annotations[idx]
-        #return input_text, target_text, input_ids, attention_mask, labels, annotations
+
         return {
             "input_texts": input_text,
             "target_texts": target_text,
+            "annotations": annotations,
             "input_ids": input_ids,
             "attention_mask": attention_mask,
-            "labels": labels,
-            "annotations": annotations
+            "labels": labels
         }
+
+
+def collate_fn(batch):
+    collated_batch = {}
+    for key in batch[0]:
+        collated_batch[key] = [d[key] for d in batch]
+        if isinstance(collated_batch[key][0], torch.Tensor):
+            collated_batch[key] = torch.cat(collated_batch[key], 0)
+    return collated_batch
         
 
 def get_train_val_test_df(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -127,15 +155,6 @@ def get_train_val_test_df(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Dat
     return train_df, val_df, test_df
 
 
-def collate_fn(batch):
-    collated_batch = {}
-    for key in batch[0]:
-        collated_batch[key] = [d[key] for d in batch]
-        if isinstance(collated_batch[key][0], torch.Tensor):
-            collated_batch[key] = torch.cat(collated_batch[key], 0)
-    return collated_batch
-
-
 class T5DataModule(pl.LightningDataModule):
 
     def __init__(self, tokenizer: T5Tokenizer, args: Any):
@@ -143,36 +162,20 @@ class T5DataModule(pl.LightningDataModule):
         self.tokenizer = tokenizer
         self.args = args
 
-        if self.args.task_name == "T2A":
-            self.source_column = self.args.text_column
-            self.target_column = self.args.aspects_column
-        elif self.args.task_name == "A2P":
-            self.source_column = self.args.aspects_column
-            self.target_column = self.args.polarities_column
-        else:
-            raise ValueError("Invalid task name")
-        
     def setup(self, stage=None):
         if stage == "fit":
             train_df = pd.read_csv(self.args.train_dataset_path)
             val_df = pd.read_csv(self.args.val_dataset_path)
 
-            if self.args.verbose:
-                print("Train dataset: ", train_df.head(2))
-
             self.train_dataset = T5ABSADataset(
                 tokenizer=self.tokenizer,
-                inputs=train_df[self.source_column].tolist(),
-                targets=train_df[self.target_column].tolist(),
-                aspects_annotations=train_df[self.args.annotations_column].tolist(),
+                data_df=train_df,
                 args=self.args
             )
 
             self.val_dataset = T5ABSADataset(
                 tokenizer=self.tokenizer,
-                inputs=val_df[self.source_column].tolist(),
-                targets=val_df[self.target_column].tolist(),
-                aspects_annotations=val_df[self.args.annotations_column].tolist(),
+                data_df=val_df,
                 args=self.args
             )
             
@@ -180,48 +183,25 @@ class T5DataModule(pl.LightningDataModule):
             test_df = pd.read_csv(self.args.test_dataset_path)
             self.test_dataset = T5ABSADataset(
                 tokenizer=self.tokenizer,
-                inputs=test_df[self.source_column].tolist(),
-                targets=test_df[self.target_column].tolist(),
-                aspects_annotations=test_df[self.args.aspects_annotations_column].tolist(),
+                data_df=test_df,
                 args=self.args
             )
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.args.tbatch_size, shuffle=True)
-    
+        return DataLoader(
+            self.train_dataset, 
+            batch_size=self.args.tbatch_size, shuffle=True, collate_fn=collate_fn
+        )
+
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.args.vbatch_size)
-    
+        return DataLoader(
+            self.val_dataset, 
+            batch_size=self.args.vbatch_size, shuffle=False, collate_fn=collate_fn
+        )
+
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.args.vbatch_size)
-
-
-class ABSAData(object):
-
-    def __init__(
-        self,
-        aspects_categories: List[str],
-        aspects_terms: Dict[str, List[str]],
-        sentiment_polarities: Union[int, List[str]],
-        oov_aspect_category: bool=False,
-        oov_aspect_term: bool=False,
-        oov_sentiment_polarity: bool=False
-    ):
-        self.aspects_categories = aspects_categories
-        self.aspects_terms = aspects_terms
-        self.sentiment_polarities = self._update_sentiment_polarities(sentiment_polarities)
-        self.oov_aspect_category = oov_aspect_category
-        self.oov_aspect_term = oov_aspect_term
-        self.oov_sentiment_polarity = oov_sentiment_polarity
-
-    def _update_sentiment_polarities(self, sentiment_polarities: Union[int, List[str]]) -> List[str]:
-        if isinstance(sentiment_polarities, int):
-            assert sentiment_polarities in {2, 3, 5}, "Invalid sentiment polarity value"
-            if sentiment_polarities == 2:
-                sentiment_polarities = ["positive", "negative"]
-            elif sentiment_polarities == 3:
-                sentiment_polarities = ["positive", "negative", "neutral"]
-            elif sentiment_polarities == 5:
-                sentiment_polarities = ["very positive", "positive", "neutral", "negative", "very negative"]
-        return sentiment_polarities
+        return DataLoader(
+            self.test_dataset, 
+            batch_size=self.args.vbatch_size, shuffle=False, collate_fn=collate_fn
+        )
 
