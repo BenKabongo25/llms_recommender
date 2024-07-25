@@ -5,11 +5,10 @@
 
 import ast
 import pandas as pd
-import pytorch_lightning as pl
 import torch
 
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 from tqdm import tqdm
 from transformers import T5Tokenizer
 from typing import *
@@ -161,55 +160,3 @@ def get_train_val_test_df(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Dat
             random_state=args.random_state
         )
     return train_df, val_df, test_df
-
-
-class T5DataModule(pl.LightningDataModule):
-
-    def __init__(self, tokenizer: T5Tokenizer, args: Any):
-        super().__init__()
-        self.tokenizer = tokenizer
-        self.args = args
-
-    def setup(self, stage=None):
-        if stage == "fit":
-            train_df = pd.read_csv(self.args.train_dataset_path)
-            val_df = pd.read_csv(self.args.val_dataset_path)
-
-            self.train_dataset = T5ABSADataset(
-                tokenizer=self.tokenizer,
-                data_df=train_df,
-                args=self.args
-            )
-
-            self.val_dataset = T5ABSADataset(
-                tokenizer=self.tokenizer,
-                data_df=val_df,
-                args=self.args
-            )
-            
-        if stage == "test":
-            test_df = pd.read_csv(self.args.test_dataset_path)
-            self.test_dataset = T5ABSADataset(
-                tokenizer=self.tokenizer,
-                data_df=test_df,
-                args=self.args
-            )
-
-    def train_dataloader(self):
-        return DataLoader(
-            self.train_dataset, 
-            batch_size=self.args.tbatch_size, shuffle=True, collate_fn=collate_fn
-        )
-
-    def val_dataloader(self):
-        return DataLoader(
-            self.val_dataset, 
-            batch_size=self.args.vbatch_size, shuffle=False, collate_fn=collate_fn
-        )
-
-    def test_dataloader(self):
-        return DataLoader(
-            self.test_dataset, 
-            batch_size=self.args.vbatch_size, shuffle=False, collate_fn=collate_fn
-        )
-

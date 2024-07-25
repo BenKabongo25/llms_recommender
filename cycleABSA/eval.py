@@ -25,6 +25,7 @@ def text_evaluation(predictions: List[str], references: List[str], args: Any) ->
     bertscore_results["precision"] = np.mean(bertscore_results["precision"])
     bertscore_results["recall"] = np.mean(bertscore_results["recall"])
     bertscore_results["f1"] = np.mean(bertscore_results["f1"])
+    del bertscore_results["hashcode"]
 
     meteor_metric = evaluate.load("meteor")
     meteor_results = meteor_metric.compute(predictions=predictions, references=references)
@@ -83,9 +84,9 @@ def get_evaluation_scores(
     if task_type is None:
         task_type = args.task_type
         
-    if task_type == TaskType.A2T:
+    if task_type is TaskType.A2T:
         scores = text_evaluation(predictions, references, args)
-    else: # args.task_name == "T2A"
+    else:
         predictions = [
             annotations_text_former.multiple_text_to_annotations(pred)
             for pred in predictions

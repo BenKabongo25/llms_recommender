@@ -6,7 +6,7 @@
 from typing import *
 
 from enums import AbsaTupleType, AnnotationsTextFormerType, TaskType
-from utils import AbsaData, preprocess_text
+from utils import AbsaData
 
 
 class AnnotationsTextFormerBase(object):

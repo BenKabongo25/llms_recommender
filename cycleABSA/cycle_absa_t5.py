@@ -159,6 +159,8 @@ def update_infos(train_infos, test_infos, train_loss_infos, train_epoch_infos, t
             train_infos[metric].append(train_epoch_infos[metric])
             test_infos[metric].append(test_epoch_infos[metric])
 
+    return train_infos, test_infos
+
 
 def trainer(
     model, 
@@ -189,7 +191,7 @@ def trainer(
             task_type,
             args
         )
-        update_infos(
+        train_infos, test_infos = update_infos(
             train_infos, test_infos,
             train_loss_infos, train_epoch_infos, test_epoch_infos 
         )
@@ -349,7 +351,7 @@ def t2a_unlabeled_one_epoch_trainer(
         args=args
     )
 
-    update_infos(
+    t2a_train_infos, t2a_test_infos = update_infos(
         t2a_train_infos, t2a_test_infos,
         train_loss_infos, train_epoch_infos, test_epoch_infos 
     )
@@ -391,7 +393,7 @@ def a2t_unlabeled_one_epoch_trainer(
         args=args
     )
     
-    update_infos(
+    a2t_train_infos, a2t_test_infos = update_infos(
         a2t_train_infos, a2t_test_infos,
         train_loss_infos, train_epoch_infos, test_epoch_infos 
     )
@@ -413,15 +415,16 @@ def cycle_trainer(
     args
 ):
     def save_results():
-        results = {"t2a": t2a_infos, "a2t": a2t_infos}
-        with open(args.res_file_path, "w") as res_file:
-            json.dump(results, res_file)
+        with open(args.res_t2a_file_path, "w") as res_file:
+            json.dump({"t2a": t2a_infos}, res_file)
+        with open(args.res_a2t_file_path, "w") as res_file:
+            json.dump({"a2t": a2t_infos}, res_file)
 
     t2a_optimizer = torch.optim.Adam(t2a_model.parameters(), lr=args.lr)
     a2t_optimizer = torch.optim.Adam(a2t_model.parameters(), lr=args.lr)
 
-    t2a_infos = {"labeled": {}, "unlabeled": {}, "test": {}}
-    a2t_infos = {"labeled": {}, "unlabeled": {}, "test": {}}
+    t2a_infos = {"test": {}, "labeled": {}, "unlabeled": {}}
+    a2t_infos = {"test": {}, "labeled": {}, "unlabeled": {}}
 
     if args.n_labeled_epochs > 0:
         t2a_train_labeled_infos, t2a_test_labeled_infos = labeled_trainer(
@@ -435,7 +438,7 @@ def cycle_trainer(
             args=args
         )
         t2a_infos["labeled"]["train"] = t2a_train_labeled_infos
-        t2a_infos["labeled"]["test"] = t2a_test_labeled_infos
+        t2a_infos["labeled"]["eval"] = t2a_test_labeled_infos
         save_results()
 
         a2t_train_labeled_infos, a2t_test_labeled_infos = labeled_trainer(
@@ -449,20 +452,20 @@ def cycle_trainer(
             args=args
         )
         a2t_infos["labeled"]["train"] = a2t_train_labeled_infos
-        a2t_infos["labeled"]["test"] = a2t_test_labeled_infos
+        a2t_infos["labeled"]["eval"] = a2t_test_labeled_infos
         save_results()
 
     t2a_progress_bar = tqdm(
         total=args.n_unlabeled_epochs, 
         desc="T2A Unlabeled Trainig", 
         colour="blue", 
-        position=0
+        position=1
     )
     a2t_progress_bar = tqdm(
         total=args.n_unlabeled_epochs, 
         desc="A2T Unlabeled Trainig", 
         colour="yellow", 
-        position=1
+        position=0
     )
 
     t2a_train_unlabeled_infos = {"loss": [],}
@@ -485,7 +488,7 @@ def cycle_trainer(
             t2a_test_unlabeled_infos
         )
         t2a_infos["unlabeled"]["train"] = t2a_train_unlabeled_infos
-        t2a_infos["unlabeled"]["test"] = t2a_test_unlabeled_infos
+        t2a_infos["unlabeled"]["eval"] = t2a_test_unlabeled_infos
         train_loss = t2a_train_unlabeled_infos["loss"][-1]
         save_results()
         t2a_progress_bar.update(1)
@@ -508,7 +511,7 @@ def cycle_trainer(
             a2t_test_unlabeled_infos
         )
         a2t_infos["unlabeled"]["train"] = a2t_train_unlabeled_infos
-        a2t_infos["unlabeled"]["test"] = a2t_test_unlabeled_infos
+        a2t_infos["unlabeled"]["eval"] = a2t_test_unlabeled_infos
         train_loss = a2t_train_unlabeled_infos["loss"][-1]
         save_results()
         a2t_progress_bar.update(1)
@@ -644,7 +647,8 @@ def main(args):
     os.makedirs(exp_dir, exist_ok=True)
     args.exp_dir = exp_dir
     args.log_file_path = os.path.join(exp_dir, "log.txt")
-    args.res_file_path = os.path.join(exp_dir, "res.json")
+    args.res_t2a_file_path = os.path.join(exp_dir, "res_t2a.json")
+    args.res_a2t_file_path = os.path.join(exp_dir, "res_a2t.json")
 
     if args.save_t2a_model_path == "":
         args.save_t2a_model_path = os.path.join(exp_dir, "t2a_model.pth")
@@ -702,9 +706,10 @@ def main(args):
     )
     a2t_infos["test"] = a2t_test_infos
     
-    results = {"t2a": t2a_infos, "a2t": a2t_infos}
-    with open(args.res_file_path, "w") as res_file:
-        json.dump(results, res_file)
+    with open(args.res_t2a_file_path, "w") as res_file:
+        json.dump({"t2a": t2a_infos}, res_file)
+    with open(args.res_a2t_file_path, "w") as res_file:
+        json.dump({"a2t": a2t_infos}, res_file)
 
 
 if __name__ == "__main__":
