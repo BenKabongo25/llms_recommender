@@ -77,9 +77,13 @@ def get_evaluation_scores(
     references: Union[List[str], List[List[Tuple[str]]]], 
     annotations: List[List[Tuple[str]]],
     annotations_text_former: AnnotationsTextFormerBase, 
-    args: Any
+    args: Any,
+    task_type: Optional[TaskType]=None
 ) -> Dict[str, Dict]:
-    if args.task_type == TaskType.A2T:
+    if task_type is None:
+        task_type = args.task_type
+        
+    if task_type == TaskType.A2T:
         scores = text_evaluation(predictions, references, args)
     else: # args.task_name == "T2A"
         predictions = [

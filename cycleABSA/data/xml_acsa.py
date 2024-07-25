@@ -29,7 +29,7 @@ def process_xml_to_dataframe(file_path, args):
         texts.append(text)
         annotations.append(annotation_list)
 
-    data_df = pd.DataFrame({'text': texts, 'annotation': annotations})
+    data_df = pd.DataFrame({'text': texts, 'annotations': annotations})
     data_df.to_csv(
         args.data_path,
         mode='a',

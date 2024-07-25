@@ -33,3 +33,8 @@ class AnnotationsTextFormerType(enum.Enum):
     GAS_EXTRACTION_STYLE = "gas_extraction_style"
     GAS_ANNOTATION_STYLE = "gas_annotation_style"
     PARAPHRASE           = "paraphrase"
+
+
+class PrompterType(enum.Enum):
+    P1 = 1
+    P2 = 2

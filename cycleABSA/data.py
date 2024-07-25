@@ -16,7 +16,7 @@ from typing import *
 
 from annotations_text import AnnotationsTextFormerBase
 from enums import TaskType
-from prompts import get_prompt
+from prompts import PrompterBase
 from utils import preprocess_text
 
 
@@ -25,18 +25,26 @@ class T5ABSADataset(Dataset):
     def __init__(
         self,
         tokenizer: T5Tokenizer,
-        annotations_text_former: AnnotationsTextFormerBase, 
+        annotations_text_former: AnnotationsTextFormerBase,
+        prompter: PrompterBase,
         data_df: pd.DataFrame,
-        args: Any
+        args: Any,
+        task_type: Optional[TaskType]=None,
+        split_name: str=""
     ):
         super().__init__()
 
         self.tokenizer = tokenizer
         self.annotations_text_former = annotations_text_former
+        self.prompter = prompter
 
         self.texts = data_df[args.text_column].tolist()
-        self.annotations = data_df[args.annotations_column].apply(ast.literal_eval).tolist()
+        self.annotations = data_df[args.annotations_column].apply(
+            lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+        ).tolist()
         self.args = args
+        self.task_type = task_type if task_type is not None else self.args.task_type
+        self.split_name = split_name
 
         self.input_texts = []
         self.target_texts = []
@@ -51,7 +59,8 @@ class T5ABSADataset(Dataset):
         return len(self.texts)
 
     def _build(self):
-        for idx in tqdm(range(len(self)), "Prepare data", colour="green"):
+        desc = "Prepare data" if not self.split_name else self.split_name
+        for idx in tqdm(range(len(self)), desc, colour="green"):
             text = preprocess_text(self.texts[idx], self.args)
             annotations = self.annotations[idx]
             annotations = [tuple([preprocess_text(t, self.args) for t in ann]) for ann in annotations]
@@ -59,20 +68,19 @@ class T5ABSADataset(Dataset):
 
             annotations_text = self.annotations_text_former.multiple_annotations_to_text(annotations)
 
-            if self.args.task_type is TaskType.T2A:
+            if self.task_type is TaskType.T2A:
                 input_text = text
                 target_text = annotations_text
             else:
                 input_text = annotations_text
                 target_text = text
 
-            if self.args.prompt_flag:
-                input_text = get_prompt(
-                    text=input_text, 
-                    annotations=annotations, 
-                    polarities=self.annotations_text_former.absa_data.sentiment_polarities,
-                    args=self.args
-                )
+            input_text = self.prompter.get_prompt(
+                task_type=self.task_type,
+                text=input_text, 
+                annotations=annotations, 
+                polarities=self.annotations_text_former.absa_data.sentiment_polarities,
+            )
             
             input = self.tokenizer(
                 input_text, 

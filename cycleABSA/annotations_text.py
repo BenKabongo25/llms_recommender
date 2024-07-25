@@ -129,18 +129,18 @@ class ParaphraseAnnotationsTextFormer(AnnotationsTextFormerBase):
         return f"{pc} is {pp} because {pa} is {po}"
 
     def quad_text_to_elements(self, text: str) -> tuple[str]:
-        splits = text.split("because")
+        splits = text.split(" because ")
         if len(splits) < 2:
             return (None, None, None, None)
         pcp, pao = splits[0].strip(), splits[1].strip()
 
-        pcp_splits = pcp.strip().split("is")
+        pcp_splits = pcp.strip().split(" is ")
         if len(pcp_splits) < 2:
             pc, pp = None, None
         else:
             pc, pp = pcp_splits[0].strip(), pcp_splits[1].strip()
 
-        pao_splits = pao.strip().split("is")
+        pao_splits = pao.strip().split(" is ")
         if len(pao_splits) < 2:
             pa, po = None, None
         else:
@@ -152,7 +152,7 @@ class ParaphraseAnnotationsTextFormer(AnnotationsTextFormerBase):
         return f"{ao} is equivalent to {cp}"
 
     def pair_text_to_elements(self, text: str) -> str:
-        splits = text.split("is equivalent to")
+        splits = text.split(" is equivalent to ")
         if len(splits) < 2:
             return (None, None)
         else:

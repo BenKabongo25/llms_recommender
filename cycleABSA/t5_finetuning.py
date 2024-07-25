@@ -7,7 +7,6 @@ import argparse
 import json
 import os
 import torch
-import torch.nn as nn
 
 from torch.utils.data import DataLoader
 from transformers import T5Tokenizer, T5ForConditionalGeneration
@@ -16,8 +15,9 @@ from typing import *
 
 from annotations_text import AnnotationsTextFormerBase
 from data import T5ABSADataset, collate_fn, get_train_val_test_df
-from enums import TaskType, AbsaTupleType, AnnotationsTextFormerType
+from enums import TaskType, AbsaTupleType, AnnotationsTextFormerType, PrompterType
 from eval import get_evaluation_scores
+from prompts import PrompterBase
 from utils import AbsaData, set_seed
 
 
@@ -29,43 +29,28 @@ def load_model(model, path: str):
     model.load_state_dict(torch.load(path))
 
 
-def train_test(
-    model, 
-    tokenizer, 
-    annotations_text_former, 
-    optimizer, 
-    dataloader, 
-    args,
-    train_flag=True, 
-    epoch=-1
-):
+def empty_cache():
+    with torch.no_grad(): 
+        torch.cuda.empty_cache()
+
+    
+def evaluate(model, tokenizer, annotations_text_former, dataloader, args) -> dict:
     references = []
     predictions = []
     all_annotations = []
 
-    running_loss = .0
-    if train_flag: model.train()
-    else: model.eval()
-
+    model.eval()
     for batch_idx, batch in enumerate(dataloader):
+        empty_cache()
+        
         input_ids = batch["input_ids"].to(args.device)
         attention_mask = batch["attention_mask"].to(args.device)
-        labels = batch["labels"].to(args.device)
         
-        outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs.loss
-
-        if train_flag:
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        running_loss += loss.item()
-
-        output_texts = tokenizer.batch_decode(
-            outputs.logits.argmax(dim=-1), 
-            skip_special_tokens=True
+        outputs = model.generate(
+            input_ids=input_ids, attention_mask=attention_mask, do_sample=False, 
+            max_length=args.max_target_length
         )
+        output_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
         target_texts = batch["target_texts"]
         annotations = batch["annotations"]
@@ -74,11 +59,9 @@ def train_test(
         predictions.extend(output_texts)
         all_annotations.extend(annotations)
 
-        if batch_idx == 0 and args.verbose and epoch % args.verbose_every == 0:
+        if batch_idx == 0 and args.verbose:
             input_texts = batch["input_texts"]
             log = "=" * 100
-            is_train = "Train" if train_flag else "Eval"
-            log += f"\n{is_train}: Epoch {epoch}/{args.n_epochs}"
             for i in range(len(input_texts)):
                 log += f"\nInput: {input_texts[i]}"
                 log += f"\nTarget: {target_texts[i]}"
@@ -90,12 +73,11 @@ def train_test(
                         f"{annotations_text_former.multiple_text_to_annotations(output_texts[i])}"
                     )
                 log += "\n"
-                
+
             print("\n" + log)
             with open(args.log_file_path, "w", encoding="utf-8") as log_file:
                 log_file.write(log)
 
-    running_loss /= len(dataloader)
     scores = get_evaluation_scores(
         predictions, 
         references, 
@@ -104,57 +86,70 @@ def train_test(
         args
     )
 
-    return {"loss": running_loss, **scores}
+    return scores
 
 
-def trainer(
-    model, 
-    tokenizer, 
-    annotations_text_former, 
-    train_dataloader, 
-    test_dataloader, 
-    args
-):
+def train(model, optimizer, dataloader, args) -> dict:
+    running_loss = .0
+    model.train()
+
+    for batch_idx, batch in enumerate(dataloader):
+        empty_cache()
+        
+        input_ids = batch["input_ids"].to(args.device)
+        attention_mask = batch["attention_mask"].to(args.device)
+        labels = batch["labels"].to(args.device)
+        
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item()
+
+    running_loss /= len(dataloader)
+    return {"loss": running_loss}
+
+
+def trainer(model, tokenizer, annotations_text_former, train_dataloader, test_dataloader, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    train_infos = {}
+    train_infos = {"loss": [],}
     test_infos = {}
 
     progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
     for epoch in progress_bar:
-        train_epoch_infos = train_test(
-            model, 
-            tokenizer, 
-            annotations_text_former, 
-            optimizer, 
-            train_dataloader, 
-            args, 
-            True, 
-            epoch
-        )
+        train_loss_infos = train(model, optimizer, train_dataloader, args)
+        train_infos["loss"].append(train_loss_infos["loss"])
 
-        with torch.no_grad():
-            test_epoch_infos = train_test(
-                model, 
-                tokenizer, 
-                annotations_text_former, 
-                None, 
-                test_dataloader, 
-                args, 
-                False, 
-                epoch
-            )
+        train_epoch_infos = evaluate(model, tokenizer, annotations_text_former, train_dataloader, args)
+        test_epoch_infos = evaluate(model, tokenizer, annotations_text_former, test_dataloader, args)
 
         for metric in train_epoch_infos:
-            if metric not in train_infos:
-                train_infos[metric] = []
-                test_infos[metric] = []
-            train_infos[metric].append(train_epoch_infos[metric])
-            test_infos[metric].append(test_epoch_infos[metric])
+            if isinstance(train_epoch_infos[metric], dict):
+                if metric not in train_infos:
+                    train_infos[metric] = {}
+                    test_infos[metric] = {}
+
+                for k in train_epoch_infos[metric]:
+                    if k not in train_infos[metric]:
+                        train_infos[metric][k] = []
+                        test_infos[metric][k] = []
+                    train_infos[metric][k].append(train_epoch_infos[metric][k])
+                    test_infos[metric][k].append(test_epoch_infos[metric][k])
+
+            else:
+                if metric not in train_infos:
+                    train_infos[metric] = []
+                    test_infos[metric] = []
+                train_infos[metric].append(train_epoch_infos[metric])
+                test_infos[metric].append(test_epoch_infos[metric])
 
         progress_bar.set_description(
             f"[{epoch} / {args.n_epochs}] " +
-            f"Loss: train={train_epoch_infos['loss']:.4f} test={test_epoch_infos['loss']:.4f}"
+            f"Loss: train={train_loss_infos['loss']:.4f} "
         )
 
         results = {"train": train_infos, "test": test_infos}
@@ -172,31 +167,33 @@ def main(args):
 
     if args.dataset_dir == "":
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
+    if args.dataset_path == "":
+        args.dataset_path = os.path.join(args.dataset_dir, "data.csv")
 
     args.task_type = TaskType(args.task_type)
     args.absa_tuple = AbsaTupleType(args.absa_tuple)
     args.annotations_text_type = AnnotationsTextFormerType(args.annotations_text_type)
+    args.prompter_type = PrompterType(args.prompter_type)
 
     absa_data = AbsaData()
     annotations_text_former = AnnotationsTextFormerBase.get_annotations_text_former(args, absa_data)
-
+    prompter = PrompterBase.get_prompter(args)
     tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
-
     train_df, val_df, test_df = get_train_val_test_df(args)
     
-    train_dataset = T5ABSADataset(tokenizer, annotations_text_former, train_df, args)
+    train_dataset = T5ABSADataset(tokenizer, annotations_text_former, prompter, train_df, args)
     train_dataloader = DataLoader(
         train_dataset, 
         batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn
     )
 
-    val_dataset = T5ABSADataset(tokenizer, annotations_text_former, val_df, args)
+    val_dataset = T5ABSADataset(tokenizer, annotations_text_former, prompter, val_df, args)
     val_dataloader = DataLoader(
         val_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
     )
 
-    test_dataset = T5ABSADataset(tokenizer, annotations_text_former, test_df, args)
+    test_dataset = T5ABSADataset(tokenizer, annotations_text_former, prompter, test_df, args)
     test_dataloader = DataLoader(
         test_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
@@ -213,7 +210,7 @@ def main(args):
     if args.exp_name == "":
         args.exp_name = (
             f"{args.model_name_or_path}_{args.task_type.value}_{args.absa_tuple.value}_"
-            f"{args.annotations_text_type.value}_{args.time_id}"
+            f"{args.annotations_text_type.value}_prompt{args.prompter_type.value}_{args.time_id}"
         )
     
     args.exp_name = args.exp_name.replace(" ", "_").replace("/", "_")
@@ -244,10 +241,11 @@ def main(args):
             f"Task: {args.task_type}\n" +
             f"Tuple: {args.absa_tuple}\n" +
             f"Annotations: {args.annotations_text_type}\n" +
+            f"Prompter: {args.prompter_type}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n" +
-            f"Arguments:\n{args}\n" +
-            f"Data:\n{train_df.head(5)}\n" +
+            f"Arguments:\n{args}\n\n" +
+            f"Data:\n{train_df.head(5)}\n\n" +
             f"Input-Output example:\n{log_example}\n"
         )
         print("\n" + log)
@@ -263,16 +261,7 @@ def main(args):
         args
     )
 
-    with torch.no_grad():
-        test_infos = train_test(
-            model, 
-            tokenizer, 
-            annotations_text_former, 
-            None, 
-            test_dataloader, 
-            args, 
-            train_flag=False
-        )
+    test_infos = evaluate(model, tokenizer, annotations_text_former, test_dataloader, args)
     
     results = {"test": test_infos, "train": train_infos, "val": val_infos}
     with open(args.res_file_path, "w") as res_file:
@@ -282,8 +271,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model_name_or_path", type=str, default="t5-base")
-    parser.add_argument("--tokenizer_name_or_path", type=str, default="t5-base")
+    parser.add_argument("--model_name_or_path", type=str, default="t5-small")
+    parser.add_argument("--tokenizer_name_or_path", type=str, default="t5-small")
     parser.add_argument("--max_input_length", type=int, default=128)
     parser.add_argument("--max_target_length", type=int, default=128)
 
@@ -291,15 +280,14 @@ if __name__ == "__main__":
     parser.add_argument("--absa_tuple", type=str, default=AbsaTupleType.ACOP.value)
     parser.add_argument("--annotations_text_type", type=str, 
         default=AnnotationsTextFormerType.GAS_EXTRACTION_STYLE.value)
+    parser.add_argument("--prompter_type", type=int, default=PrompterType.P1.value)
     parser.add_argument("--text_column", type=str, default="text")
     parser.add_argument("--annotations_column", type=str, default="annotations")
-    parser.add_argument("--prompt_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(prompt_flag=False)
 
     parser.add_argument("--base_dir", type=str, default=os.path.join("datasets", "absa"))
     parser.add_argument("--dataset_name", type=str, default="Rest16")
-    parser.add_argument("--dataset_dir", type=str, default=os.path.join("datasets", "absa", "Rest16"))
-    parser.add_argument("--dataset_path", type=str, default=os.path.join("datasets", "absa", "Rest16", "data.csv"))
+    parser.add_argument("--dataset_dir", type=str, default="")
+    parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
     parser.add_argument("--val_dataset_path", type=str, default="")
     parser.add_argument("--test_dataset_path", type=str, default="")
@@ -319,12 +307,6 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--save_every", type=int, default=10)
     parser.add_argument("--save_model_path", type=str, default="")
-
-    parser.add_argument("--train_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(train_flag=True)
-    parser.add_argument("--save_data_flag", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(save_data_flag=False)
-    parser.add_argument("--save_data_dir", type=str, default="")
 
     parser.add_argument("--truncate_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(truncate_flag=True)
