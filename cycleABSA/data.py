@@ -10,11 +10,11 @@ import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from tqdm import tqdm
-from transformers import T5Tokenizer
+from transformers import T5Tokenizer, BartTokenizer
 from typing import *
 
 from annotations_text import AnnotationsTextFormerBase
-from enums import TaskType
+from enums import TaskType, AbsaTupleType
 from prompts import PrompterBase
 from utils import preprocess_text
 
@@ -47,6 +47,7 @@ class T5ABSADataset(Dataset):
 
         self.input_texts = []
         self.target_texts = []
+        self.references_idx = []
 
         self.input_ids = []
         self.attention_masks = []
@@ -61,10 +62,17 @@ class T5ABSADataset(Dataset):
         desc = "Prepare data" if not self.split_name else self.split_name
         for idx in tqdm(range(len(self)), desc, colour="green"):
             text = preprocess_text(self.texts[idx], self.args)
+            
             annotations = self.annotations[idx]
-            annotations = [tuple([preprocess_text(t, self.args) for t in ann]) for ann in annotations]
-            self.annotations[idx] = annotations
-
+            formatted_annotations = []
+            for ann in annotations:
+                if not self.args.annotations_raw_format == self.args.absa_tuple.value:
+                    ann = AbsaTupleType.format_annotations(
+                        ann, self.args.annotations_raw_format, self.args.absa_tuple.value
+                    )
+                ann = tuple([preprocess_text(t.strip(), self.args) for t in ann]) 
+                formatted_annotations.append(ann)
+            self.annotations[idx] = formatted_annotations
             annotations_text = self.annotations_text_former.multiple_annotations_to_text(annotations)
 
             if self.task_type is TaskType.T2A:
@@ -107,6 +115,18 @@ class T5ABSADataset(Dataset):
             self.attention_masks.append(attention_mask)
             self.labels.append(labels)
 
+        if self.task_type is TaskType.T2A:
+            for i in range(len(self.annotations)):
+                self.references_idx.append([i])
+        else:
+            for i in range(len(self.annotations)):
+                refs_idx = [i]
+                for j in range(len(self.annotations)):
+                    if i != j and self.annotations[i] == self.annotations[j]:
+                        refs_idx.append(j)
+                self.references_idx.append(refs_idx)
+        
+
     def __getitem__(self, idx):
         input_text = self.input_texts[idx]
         target_text = self.target_texts[idx]
@@ -116,13 +136,16 @@ class T5ABSADataset(Dataset):
         attention_mask = self.attention_masks[idx]
         labels = self.labels[idx]
 
+        references = [self.target_texts[ref_idx] for ref_idx in self.references_idx[idx] ]
+
         return {
             "input_texts": input_text,
             "target_texts": target_text,
             "annotations": annotations,
             "input_ids": input_ids,
             "attention_mask": attention_mask,
-            "labels": labels
+            "labels": labels,
+            "references": references
         }
 
 
