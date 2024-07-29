@@ -245,7 +245,7 @@ class ParaphraseAnnotationsTextFormer(AnnotationsTextFormerBase):
                 po = o
             
             elif self.args.absa_tuple is AbsaTupleType.ACOP:
-                (a, c, p, o) = annotations
+                (a, c, o, p) = annotations
                 pa = self.aspect_term_annotation_to_paraphrase(a)
                 pp = self.polarity_annotation_to_paraphrase(p)
                 pc = c
@@ -347,7 +347,7 @@ class ParaphraseAnnotationsTextFormer(AnnotationsTextFormerBase):
                     a = self.aspect_term_paraphrase_to_annotation(a)
                 if p is not None:
                     p = self.polarity_paraphrase_to_annotation(p)
-                return (a, c, p, o)
+                return (a, c, o, p)
                 
         return ()
 

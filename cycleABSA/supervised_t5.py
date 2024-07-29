@@ -10,156 +10,44 @@ import torch
 
 from torch.utils.data import DataLoader
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-from tqdm import tqdm
-from typing import *
 
-from annotations_text import AnnotationsTextFormerBase
-from data import T5ABSADataset, collate_fn, get_train_val_test_df
-from enums import TaskType, AbsaTupleType, AnnotationsTextFormerType, PrompterType
-from eval import get_evaluation_scores
-from prompts import PrompterBase
-from utils import AbsaData, set_seed
+from cycle_absa_t5 import *
 
 
-def save_model(model, path: str):
-    torch.save(model.state_dict(), path)
-
-
-def load_model(model, path: str):
-    model.load_state_dict(torch.load(path))
-
-
-def empty_cache():
-    with torch.no_grad(): 
-        torch.cuda.empty_cache()
-
-    
-def evaluate(model, tokenizer, annotations_text_former, dataloader, args) -> dict:
-    references = []
-    predictions = []
-    all_annotations = []
-
-    model.eval()
-    for batch_idx, batch in enumerate(dataloader):
-        empty_cache()
-        
-        input_ids = batch["input_ids"].to(args.device)
-        attention_mask = batch["attention_mask"].to(args.device)
-        
-        outputs = model.generate(
-            input_ids=input_ids, attention_mask=attention_mask, do_sample=False, 
-            max_length=args.max_target_length
-        )
-        output_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-
-        target_texts = batch["target_texts"]
-        annotations = batch["annotations"]
-
-        references.extend(target_texts)
-        predictions.extend(output_texts)
-        all_annotations.extend(annotations)
-
-        if batch_idx == 0 and args.verbose:
-            input_texts = batch["input_texts"]
-            log = "=" * 100
-            for i in range(len(input_texts)):
-                log += f"\nInput: {input_texts[i]}"
-                log += f"\nTarget: {target_texts[i]}"
-                log += f"\nAnnotations: {annotations[i]}"
-                log += f"\nOutput: {output_texts[i]}"
-                if args.task_type is TaskType.T2A:
-                    log += (
-                        f"\nOutput annotations: "
-                        f"{annotations_text_former.multiple_text_to_annotations(output_texts[i])}"
-                    )
-                log += "\n"
-
-            print("\n" + log)
-            with open(args.log_file_path, "w", encoding="utf-8") as log_file:
-                log_file.write(log)
-
-    scores = get_evaluation_scores(
-        predictions, 
-        references, 
-        all_annotations, 
-        annotations_text_former,
-        args
-    )
-
-    return scores
-
-
-def train(model, optimizer, dataloader, args) -> dict:
-    running_loss = .0
-    model.train()
-
-    for batch_idx, batch in enumerate(dataloader):
-        empty_cache()
-        
-        input_ids = batch["input_ids"].to(args.device)
-        attention_mask = batch["attention_mask"].to(args.device)
-        labels = batch["labels"].to(args.device)
-        
-        outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs.loss
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        running_loss += loss.item()
-
-    running_loss /= len(dataloader)
-    return {"loss": running_loss}
-
-
-def trainer(model, tokenizer, annotations_text_former, train_dataloader, test_dataloader, args):
+def task_trainer(
+    model,
+    tokenizer,
+    annotations_text_former,
+    train_dataloader,
+    test_dataloader,
+    args
+):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    train_infos = {"loss": [],}
-    test_infos = {}
+    if args.task_type is TaskType.T2A:
+        args.best_f1_score = 0.0
+    else:
+        args.best_meteor_score = 0.0
 
-    progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
-    for epoch in progress_bar:
-        train_loss_infos = train(model, optimizer, train_dataloader, args)
-        train_infos["loss"].append(train_loss_infos["loss"])
+    infos = {"test": {}, "training": {}}
+    train_infos, test_infos = trainer(
+        model=model,
+        tokenizer=tokenizer,
+        optimizer=optimizer,
+        annotations_text_former=annotations_text_former,
+        train_dataloader=train_dataloader,
+        test_dataloader=test_dataloader,
+        task_type=args.task_type,
+        args=args
+    )
+    infos["training"]["train"] = train_infos
+    infos["training"]["eval"] = test_infos
 
-        train_epoch_infos = evaluate(model, tokenizer, annotations_text_former, train_dataloader, args)
-        test_epoch_infos = evaluate(model, tokenizer, annotations_text_former, test_dataloader, args)
+    infos_df = create_res_df_from_dict(infos, args.task_type)
+    infos_df.to_csv(args.res_file_path)
+    verbose_results(infos_df, TaskType.T2A)
 
-        for metric in train_epoch_infos:
-            if isinstance(train_epoch_infos[metric], dict):
-                if metric not in train_infos:
-                    train_infos[metric] = {}
-                    test_infos[metric] = {}
-
-                for k in train_epoch_infos[metric]:
-                    if k not in train_infos[metric]:
-                        train_infos[metric][k] = []
-                        test_infos[metric][k] = []
-                    train_infos[metric][k].append(train_epoch_infos[metric][k])
-                    test_infos[metric][k].append(test_epoch_infos[metric][k])
-
-            else:
-                if metric not in train_infos:
-                    train_infos[metric] = []
-                    test_infos[metric] = []
-                train_infos[metric].append(train_epoch_infos[metric])
-                test_infos[metric].append(test_epoch_infos[metric])
-
-        progress_bar.set_description(
-            f"[{epoch} / {args.n_epochs}] " +
-            f"Loss: train={train_loss_infos['loss']:.4f} "
-        )
-
-        results = {"train": train_infos, "test": test_infos}
-        with open(args.res_file_path, "w") as res_file:
-            json.dump(results, res_file)
-
-        if epoch % args.save_every == 0:
-            save_model(model, args.save_model_path)
-
-    return train_infos, test_infos
+    return infos
 
 
 def main(args):
@@ -180,20 +68,29 @@ def main(args):
     prompter = PrompterBase.get_prompter(args)
     tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
     train_df, val_df, test_df = get_train_val_test_df(args)
-    
-    train_dataset = T5ABSADataset(tokenizer, annotations_text_former, prompter, train_df, args)
+
+    train_dataset = T5ABSADataset(
+        tokenizer, annotations_text_former, prompter, train_df, args, task_type=TaskType.T2A,
+        split_name="Train"
+    )
     train_dataloader = DataLoader(
         train_dataset, 
         batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn
     )
-
-    val_dataset = T5ABSADataset(tokenizer, annotations_text_former, prompter, val_df, args)
+    
+    val_dataset = T5ABSADataset(
+        tokenizer, annotations_text_former, prompter, val_df, args, task_type=TaskType.T2A,
+        split_name="Eval"
+    )
     val_dataloader = DataLoader(
         val_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
     )
 
-    test_dataset = T5ABSADataset(tokenizer, annotations_text_former, prompter, test_df, args)
+    test_dataset = T5ABSADataset(
+        tokenizer, annotations_text_former, prompter, test_df, args, task_type=TaskType.T2A,
+        split_name="Test"
+    )
     test_dataloader = DataLoader(
         test_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
@@ -206,10 +103,10 @@ def main(args):
     model.to(args.device)
     if args.save_model_path != "":
         load_model(model, args.save_model_path)
-
+    
     if args.exp_name == "":
         args.exp_name = (
-            f"{args.model_name_or_path}_{args.task_type.value}_{args.absa_tuple.value}_"
+            f"{args.task_type.value}_{args.model_name_or_path}_{args.absa_tuple.value}_"
             f"{args.annotations_text_type.value}_prompt{args.prompter_type.value}_{args.time_id}"
         )
     
@@ -219,13 +116,13 @@ def main(args):
     os.makedirs(exp_dir, exist_ok=True)
     args.exp_dir = exp_dir
     args.log_file_path = os.path.join(exp_dir, "log.txt")
-    args.res_file_path = os.path.join(exp_dir, "res.json")
+    args.res_file_path = os.path.join(exp_dir, "res.csv")
 
     if args.save_model_path == "":
         args.save_model_path = os.path.join(exp_dir, "model.pth")
 
     if args.verbose:
-        batch = next(iter(train_dataloader))
+        batch = next(iter(test_dataloader))
         input_texts = batch["input_texts"]
         target_texts = batch["target_texts"]
         annotations = batch["annotations"]
@@ -236,36 +133,45 @@ def main(args):
         log_example += f"\nAnnotations: {annotations[0]}"
         log_example += f"\nInputs size: {input_ids.shape}"
         log = (
+            f"Task: {args.task_type}\n" +
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
-            f"Task: {args.task_type}\n" +
             f"Tuple: {args.absa_tuple}\n" +
             f"Annotations: {args.annotations_text_type}\n" +
             f"Prompter: {args.prompter_type}\n" +
             f"Dataset: {args.dataset_name}\n" +
             f"Device: {device}\n" +
             f"Arguments:\n{args}\n\n" +
-            f"Data:\n{train_df.head(5)}\n\n" +
+            f"Data:\n{test_df.head(5)}\n\n" +
             f"Input-Output example:\n{log_example}\n"
         )
         print("\n" + log)
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
 
-    train_infos, val_infos = trainer(
-        model, 
-        tokenizer, 
-        annotations_text_former, 
-        train_dataloader, 
-        val_dataloader, 
+    infos, infos = cycle_trainer(
+        model,
+        model,
+        tokenizer,
+        annotations_text_former,
+        train_dataloader,
+        train_dataloader,
+        train_dataloader,
+        train_dataloader,
+        val_dataloader,
+        val_dataloader,
         args
     )
 
-    test_infos = evaluate(model, tokenizer, annotations_text_former, test_dataloader, args)
-    
-    results = {"test": test_infos, "train": train_infos, "val": val_infos}
-    with open(args.res_file_path, "w") as res_file:
-        json.dump(results, res_file)
+    model = load_model(model, args.save_model_path)
+    model.to(args.device)
+    test_infos = evaluate(
+        model, tokenizer, annotations_text_former, test_dataloader, args.task_type, args
+    )
+    infos["test"] = test_infos
+    infos_df = create_res_df_from_dict(infos, args.task_type)
+    infos_df.to_csv(args.res_file_path)
+    verbose_results(infos_df, args.task_type)
 
 
 if __name__ == "__main__":
@@ -283,6 +189,9 @@ if __name__ == "__main__":
     parser.add_argument("--prompter_type", type=int, default=PrompterType.P1.value)
     parser.add_argument("--text_column", type=str, default="text")
     parser.add_argument("--annotations_column", type=str, default="annotations")
+    parser.add_argument("--annotations_raw_format", type=str, default="acpo",
+        help="a: aspect term, c: aspect category, p: sentiment polarity, o: opinion term"
+    )
 
     parser.add_argument("--base_dir", type=str, default=os.path.join("datasets", "absa"))
     parser.add_argument("--dataset_name", type=str, default="Rest16")

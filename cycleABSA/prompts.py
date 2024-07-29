@@ -45,15 +45,15 @@ class Prompter1(PrompterBase):
         if task_type is None:
             task_type = self.args.task_type
         if task_type is TaskType.T2A:
-            return "translate from text to absa: {text}".format(text=text)
+            return "translate from text to absa tuples: {text}".format(text=text)
         else:
-            return "translate from absa to text: {text}".format(text=text)
+            return "translate from absa tuples to text: {text}".format(text=text)
 
     def get_text(self, task_type: TaskType, prompt: str) -> str:
         if task_type is TaskType.T2A:
-            prefix = "translate from text to absa: "
+            prefix = "translate from text to absa tuples: "
         else:
-            prefix = "translate from absa to text: "
+            prefix = "translate from absa tuples to text: "
         text = prompt[len(prefix):]
         return text
 

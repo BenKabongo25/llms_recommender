@@ -29,6 +29,22 @@ class AbsaTupleType(enum.Enum):
     ACOP = "acop"
 
 
+    @classmethod
+    def format_annotations(cls, annotations: tuple, raw_format: str, absa_tuple: str) -> tuple:
+        if not isinstance(absa_tuple, str):
+            absa_tuple = absa_tuple.value
+        
+        if absa_tuple == raw_format:
+            return annotations
+
+        formatted_annotations = []
+        for element in absa_tuple:
+            element_idx = raw_format.index(element)
+            formatted_annotations.append(annotations[element_idx])
+        return tuple(formatted_annotations)
+
+
+
 class AnnotationsTextFormerType(enum.Enum):
     GAS_EXTRACTION_STYLE = "gas_extraction_style"
     GAS_ANNOTATION_STYLE = "gas_annotation_style"

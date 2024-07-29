@@ -34,14 +34,80 @@ def empty_cache():
     with torch.no_grad(): 
         torch.cuda.empty_cache()
 
-    
+
+def create_res_df_from_dict(res_dict, task_type):
+    res_data = []
+
+    for split, res_split in res_dict.items():
+        if res_split == {}:
+            continue
+
+        if split == "test":
+            data = {}
+            data["Split"] = "test"
+            data["Epoch"] = None
+            if task_type is TaskType.T2A:
+                data["F1"] = res_split["f1"]
+                data["P"] = res_split["precision"]
+                data["R"] = res_split["recall"]
+                data["#Examples"] = res_split["n_examples"]
+                data["#Pred"] = res_split["n_pred"]
+                data["#True"] = res_split["n_true"]
+            else:
+                data["Bleu"] = res_split["BLEU"]["bleu"]
+                data["Meteor"] = res_split["METEOR"]["meteor"]
+                data["Rouge1"] = res_split["ROUGE"]["rouge1"]
+                data["Rouge2"] = res_split["ROUGE"]["rouge2"]
+                data["RougeL"] = res_split["ROUGE"]["rougeL"]
+                data["BS P"] = res_split["BERTScore"]["precision"]
+                data["BS R"] = res_split["BERTScore"]["recall"]
+                data["BS F1"] = res_split["BERTScore"]["f1"]
+                data["#Examples"] = res_split["n_examples"]
+            res_data.append(data)
+            
+        else:
+            for sub_split, res_sub_split in res_split.items():
+                if res_sub_split == {}:
+                    continue
+
+                if task_type is TaskType.T2A:
+                    for i in range(len(res_sub_split["f1"])):
+                        data = {}
+                        data["Split"] = f"{split}-{sub_split}"
+                        data["Epoch"] = i + 1
+                        data["F1"] = res_sub_split["f1"][i]
+                        data["P"] = res_sub_split["precision"][i]
+                        data["R"] = res_sub_split["recall"][i]
+                        data["#Examples"] = res_sub_split["n_examples"][i]
+                        data["#Pred"] = res_sub_split["n_pred"][i]
+                        data["#True"] = res_sub_split["n_true"][i]
+                        res_data.append(data)
+                else:
+                    for i in range(len(res_sub_split["BLEU"]["bleu"])):
+                        data = {}
+                        data["Split"] = f"{split}-{sub_split}"
+                        data["Epoch"] = i + 1
+                        data["Bleu"] = res_sub_split["BLEU"]["bleu"][i]
+                        data["Meteor"] = res_sub_split["METEOR"]["meteor"][i]
+                        data["Rouge1"] = res_sub_split["ROUGE"]["rouge1"][i]
+                        data["Rouge2"] = res_sub_split["ROUGE"]["rouge2"][i]
+                        data["RougeL"] = res_sub_split["ROUGE"]["rougeL"][i]
+                        data["BS P"] = res_sub_split["BERTScore"]["precision"][i]
+                        data["BS R"] = res_sub_split["BERTScore"]["recall"][i]
+                        data["BS F1"] = res_sub_split["BERTScore"]["f1"][i]
+                        data["#Examples"] = res_sub_split["n_examples"][i]
+                        res_data.append(data)
+
+    return pd.DataFrame(res_data)
+
+
 def evaluate(model, tokenizer, annotations_text_former, dataloader, task_type, args):
     references = []
     predictions = []
     all_annotations = []
 
     model.eval()
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in tqdm(enumerate(dataloader), "Eval", colour="cyan", total=len(dataloader)):
         empty_cache()
         
         input_ids = batch["input_ids"].to(args.device)
@@ -54,9 +120,10 @@ def evaluate(model, tokenizer, annotations_text_former, dataloader, task_type, a
         output_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
         target_texts = batch["target_texts"]
+        refs = batch["references"]
         annotations = batch["annotations"]
 
-        references.extend(target_texts)
+        references.extend(refs)
         predictions.extend(output_texts)
         all_annotations.extend(annotations)
 
@@ -65,7 +132,7 @@ def evaluate(model, tokenizer, annotations_text_former, dataloader, task_type, a
             log = "=" * 150
             for i in range(len(input_texts)):
                 log += f"\nInput: {input_texts[i]}"
-                log += f"\nTarget: {target_texts[i]}"
+                log += f"\nReferences: {refs[i][: min(len(refs[i]), 3)]}"
                 log += f"\nAnnotations: {annotations[i]}"
                 log += f"\nOutput: {output_texts[i]}"
                 if task_type is TaskType.T2A:
@@ -95,7 +162,7 @@ def train(model, optimizer, dataloader, args):
     running_loss = .0
     model.train()
 
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in tqdm(enumerate(dataloader), "Training", colour="cyan", total=len(dataloader)):
         empty_cache()
         
         input_ids = batch["input_ids"].to(args.device)
@@ -127,12 +194,25 @@ def one_epoch_trainer(
     args
 ):
     train_loss_infos = train(model, optimizer, train_dataloader, args)
+    
     train_epoch_infos = evaluate(
         model, tokenizer, annotations_text_former, train_evaluated_dataloader, task_type, args
     )
     test_epoch_infos = evaluate(
         model, tokenizer, annotations_text_former, test_dataloader, task_type, args
     )
+
+    if task_type is TaskType.T2A:
+        f1_score = test_epoch_infos["f1"]
+        if f1_score > args.best_t2a_f1_score:
+            save_model(model, args.save_t2a_model_path)
+            args.best_t2a_f1_score = f1_score
+    else:
+        meteor_score = test_epoch_infos["METEOR"]["meteor"]
+        if meteor_score > args.best_a2t_meteor_score:
+            save_model(model, args.save_a2t_model_path)
+            args.best_a2t_meteor_score = meteor_score
+
     return train_loss_infos, train_epoch_infos, test_epoch_infos
 
 
@@ -200,12 +280,6 @@ def trainer(
             f"{desc} [{epoch} / {n_epochs}] " +
             f"Loss: train={train_loss_infos['loss']:.4f} "
         )
-
-        if epoch % args.save_every == 0:
-            if task_type is TaskType.T2A:
-                save_model(model, args.save_t2a_model_path)
-            else:
-                save_model(model, args.save_a2t_model_path)
     
     return train_infos, test_infos
 
@@ -252,7 +326,10 @@ def create_labeled_dataloader(model, tokenizer, annotations_text_former, dataloa
     prompter = dataloader.dataset.prompter
     
     model.eval()
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in tqdm(
+        enumerate(dataloader), f"{task_type.value}: Create labeled data", colour="green", 
+        total=len(dataloader)
+    ):
         empty_cache()
         
         input_texts = batch["input_texts"]
@@ -284,7 +361,7 @@ def create_labeled_dataloader(model, tokenizer, annotations_text_former, dataloa
             true_target_texts = batch["target_texts"]
             true_annotations = batch["annotations"]
             log = "=" * 150
-            log += f"\n{task_type.value}\n\n"
+            log += f"\n\n{task_type.value}: Create labeled data\n"
             for i in range(len(input_texts)):
                 log += f"\nInput: {true_input_texts[i]}"
                 log += f"\nTarget: {true_target_texts[i]}"
@@ -401,6 +478,16 @@ def a2t_unlabeled_one_epoch_trainer(
     return a2t_train_infos, a2t_test_infos
 
 
+def verbose_results(res_data_df, task_type):
+    if args.verbose:
+        log = "=" * 150
+        log += f"\n{task_type.value}\n"
+        log += f"\n{res_data_df.head(n=len(res_data_df))}\n"
+        print(log)
+        with open(args.log_file_path, "a", encoding="utf-8") as log_file:
+            log_file.write(log)
+
+
 def cycle_trainer(
     t2a_model,
     a2t_model,
@@ -414,14 +501,11 @@ def cycle_trainer(
     test_a2t_dataloader,
     args
 ):
-    def save_results():
-        with open(args.res_t2a_file_path, "w") as res_file:
-            json.dump({"t2a": t2a_infos}, res_file)
-        with open(args.res_a2t_file_path, "w") as res_file:
-            json.dump({"a2t": a2t_infos}, res_file)
-
     t2a_optimizer = torch.optim.Adam(t2a_model.parameters(), lr=args.lr)
     a2t_optimizer = torch.optim.Adam(a2t_model.parameters(), lr=args.lr)
+
+    args.best_t2a_f1_score = 0.0
+    args.best_a2t_meteor_score = 0.0
 
     t2a_infos = {"test": {}, "labeled": {}, "unlabeled": {}}
     a2t_infos = {"test": {}, "labeled": {}, "unlabeled": {}}
@@ -439,7 +523,10 @@ def cycle_trainer(
         )
         t2a_infos["labeled"]["train"] = t2a_train_labeled_infos
         t2a_infos["labeled"]["eval"] = t2a_test_labeled_infos
-        save_results()
+
+        t2a_infos_df = create_res_df_from_dict(t2a_infos, TaskType.T2A)
+        t2a_infos_df.to_csv(args.res_t2a_file_path)
+        verbose_results(t2a_infos_df, TaskType.T2A)
 
         a2t_train_labeled_infos, a2t_test_labeled_infos = labeled_trainer(
             model=a2t_model,
@@ -453,7 +540,10 @@ def cycle_trainer(
         )
         a2t_infos["labeled"]["train"] = a2t_train_labeled_infos
         a2t_infos["labeled"]["eval"] = a2t_test_labeled_infos
-        save_results()
+
+        a2t_infos_df = create_res_df_from_dict(a2t_infos, TaskType.A2T)
+        a2t_infos_df.to_csv(args.res_a2t_file_path)
+        verbose_results(a2t_infos_df, TaskType.A2T)
 
     t2a_progress_bar = tqdm(
         total=args.n_unlabeled_epochs, 
@@ -489,13 +579,19 @@ def cycle_trainer(
         )
         t2a_infos["unlabeled"]["train"] = t2a_train_unlabeled_infos
         t2a_infos["unlabeled"]["eval"] = t2a_test_unlabeled_infos
+
         train_loss = t2a_train_unlabeled_infos["loss"][-1]
-        save_results()
+        f1_score = t2a_test_unlabeled_infos["f1"][-1]
+
         t2a_progress_bar.update(1)
         t2a_progress_bar.set_description(
             f"T2A Unlabeled Trainig [{epoch} / {args.n_unlabeled_epochs}] " +
-            f"Loss: train={train_loss:.4f} "
+            f"Loss: train={train_loss:.4f} F1: eval={f1_score:.4f}"
         )
+        
+        t2a_infos_df = create_res_df_from_dict(t2a_infos, TaskType.T2A)
+        t2a_infos_df.to_csv(args.res_t2a_file_path)
+        verbose_results(t2a_infos_df, TaskType.T2A)
 
         a2t_train_unlabeled_infos, a2t_test_unlabeled_infos = a2t_unlabeled_one_epoch_trainer(
             a2t_model,
@@ -512,13 +608,19 @@ def cycle_trainer(
         )
         a2t_infos["unlabeled"]["train"] = a2t_train_unlabeled_infos
         a2t_infos["unlabeled"]["eval"] = a2t_test_unlabeled_infos
+        
         train_loss = a2t_train_unlabeled_infos["loss"][-1]
-        save_results()
+        meteor_score = a2t_test_unlabeled_infos["METEOR"]["meteor"][-1]
+
         a2t_progress_bar.update(1)
         a2t_progress_bar.set_description(
             f"A2T Unlabeled Trainig [{epoch} / {args.n_unlabeled_epochs}] " +
-            f"Loss: train={train_loss:.4f} "
+            f"Loss: train={train_loss:.4f} METEOR: eval={meteor_score:.4f}"
         )
+        
+        a2t_infos_df = create_res_df_from_dict(a2t_infos, TaskType.A2T)
+        a2t_infos_df.to_csv(args.res_a2t_file_path)
+        verbose_results(a2t_infos_df, TaskType.A2T)
 
     return t2a_infos, a2t_infos
 
@@ -647,8 +749,8 @@ def main(args):
     os.makedirs(exp_dir, exist_ok=True)
     args.exp_dir = exp_dir
     args.log_file_path = os.path.join(exp_dir, "log.txt")
-    args.res_t2a_file_path = os.path.join(exp_dir, "res_t2a.json")
-    args.res_a2t_file_path = os.path.join(exp_dir, "res_a2t.json")
+    args.res_t2a_file_path = os.path.join(exp_dir, "res_t2a.csv")
+    args.res_a2t_file_path = os.path.join(exp_dir, "res_a2t.csv")
 
     if args.save_t2a_model_path == "":
         args.save_t2a_model_path = os.path.join(exp_dir, "t2a_model.pth")
@@ -696,20 +798,25 @@ def main(args):
         args
     )
 
+    t2a_model = load_model(t2a_model, args.save_t2a_model_path)
+    t2a_model.to(args.device)
     t2a_test_infos = evaluate(
         t2a_model, tokenizer, annotations_text_former, test_t2a_dataloader, TaskType.T2A, args
     )
     t2a_infos["test"] = t2a_test_infos
+    t2a_infos_df = create_res_df_from_dict(t2a_infos, TaskType.T2A)
+    t2a_infos_df.to_csv(args.res_t2a_file_path)
+    verbose_results(t2a_infos_df, TaskType.T2A)
 
+    a2t_model = load_model(a2t_model, args.save_a2t_model_path)
+    a2t_model.to(args.device)
     a2t_test_infos = evaluate(
         a2t_model, tokenizer, annotations_text_former, test_a2t_dataloader, TaskType.A2T, args
     )
     a2t_infos["test"] = a2t_test_infos
-    
-    with open(args.res_t2a_file_path, "w") as res_file:
-        json.dump({"t2a": t2a_infos}, res_file)
-    with open(args.res_a2t_file_path, "w") as res_file:
-        json.dump({"a2t": a2t_infos}, res_file)
+    a2t_infos_df = create_res_df_from_dict(a2t_infos, TaskType.A2T)
+    a2t_infos_df.to_csv(args.res_a2t_file_path)
+    verbose_results(a2t_infos_df, TaskType.A2T)
 
 
 if __name__ == "__main__":
@@ -727,6 +834,9 @@ if __name__ == "__main__":
     parser.add_argument("--prompter_type", type=int, default=PrompterType.P1.value)
     parser.add_argument("--text_column", type=str, default="text")
     parser.add_argument("--annotations_column", type=str, default="annotations")
+    parser.add_argument("--annotations_raw_format", type=str, default="acpo",
+        help="a: aspect term, c: aspect category, p: sentiment polarity, o: opinion term"
+    )
 
     parser.add_argument("--base_dir", type=str, default=os.path.join("datasets", "absa"))
     parser.add_argument("--dataset_name", type=str, default="Rest16")
@@ -751,7 +861,6 @@ if __name__ == "__main__":
     parser.add_argument("--n_unlabeled_epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=0.001)
-    parser.add_argument("--save_every", type=int, default=10)
     parser.add_argument("--save_t2a_model_path", type=str, default="")
     parser.add_argument("--save_a2t_model_path", type=str, default="")
 

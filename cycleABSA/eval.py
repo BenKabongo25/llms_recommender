@@ -11,11 +11,9 @@ from annotations_text import AnnotationsTextFormerBase
 from enums import TaskType
 
 
-def text_evaluation(predictions: List[str], references: List[str], args: Any) -> Dict[str, Any]:
-    references_list = [[ref] for ref in references]
-
+def text_evaluation(predictions: List[str], references: List[List[str]], args: Any) -> Dict[str, Any]:
     bleu_metric = evaluate.load("bleu")
-    bleu_results = bleu_metric.compute(predictions=predictions, references=references_list)
+    bleu_results = bleu_metric.compute(predictions=predictions, references=references)
     bleu_results["precision"] = np.mean(bleu_results["precisions"])
 
     bertscore_metric = evaluate.load("bertscore")
@@ -75,7 +73,7 @@ def aspect_evaluation(
 
 def get_evaluation_scores(
     predictions: List[str], 
-    references: Union[List[str], List[List[Tuple[str]]]], 
+    references: Union[List[List[str]], List[List[Tuple[str]]]], 
     annotations: List[List[Tuple[str]]],
     annotations_text_former: AnnotationsTextFormerBase, 
     args: Any,
@@ -96,7 +94,10 @@ def get_evaluation_scores(
 
 
 if __name__ == "__main__":
-    def test():
+    class Args:
+        pass
+
+    def aspect_test():
         pred = [[('atmosphere', 'ambience general', 'positive', 'relaxed')]]
         true = [[
             ('atmosphere', 'ambience general', 'positive', 'relaxed'),
@@ -105,4 +106,14 @@ if __name__ == "__main__":
         scores = aspect_evaluation(pred, true, None)
         print(scores)
 
-    test()
+    def text_test():
+        args = Args()
+        args.lang = "en"
+        preds = ["Hello world !"]
+        refs = [["Hello to you", "Hello", "Word", "Hello world"]]
+        scores = text_evaluation(preds, refs, args)
+        print(scores)
+
+    text_test()
+
+    
