@@ -19,6 +19,7 @@ from typing import *
 from data import TextDataset, get_train_test_data, get_test_data
 from prompters import TargetFormer
 from utils import (
+    empty_cache,
     evaluate_fn,
     ratings_evaluation,
     reviews_evaluation,
@@ -28,23 +29,33 @@ from utils import (
 warnings.filterwarnings(action="ignore")
 
 
-class T5Recommender(nn.Module):
+def get_task_name(args) -> str:
+    if args.target_review_flag and args.target_rating_flag:
+        task_name = "Review and rating prediction"
+    elif args.target_review_flag:
+        task_name = "Review prediction"
+    elif args.target_rating_flag:
+        task_name = "Rating prediction"
+    else:
+        task_name = "No task"
+    return task_name
 
-    def __init__(self, args: Any=None):
-        super().__init__()
-        self.args = args
 
-        self.model = T5ForConditionalGeneration.from_pretrained(args.model_name_or_path)
-        self.tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
+def set_objective_column_name(args):
+    args.objective_column_name = ""
+    if args.target_review_flag and args.target_rating_flag:
+        args.objective_column_name = args.objective_column_name
+    elif args.target_review_flag:
+        args.objective_column_name = "review"
+    elif args.target_rating_flag:
+        args.objective_column_name = "rating"
 
-    def forward(self, input_ids, attention_mask=None, labels=None):
-        return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
-    def save(self, path: str):
-        torch.save(self.model.state_dict(), path)
-
-    def load(self, path: str):
-        self.model.load_state_dict(torch.load(path))
+def collate_fn(batch):
+    collated_batch = {}
+    for key in batch[0]:
+        collated_batch[key] = [d[key] for d in batch]
+    return collated_batch
 
 
 def get_evaluation_scores(predictions: list, references: list, args: Any) -> dict:
@@ -80,14 +91,81 @@ def get_evaluation_scores(predictions: list, references: list, args: Any) -> dic
     return scores
 
 
-def train(model, optimizer, dataloader, args):
+class T5Recommender(nn.Module):
+
+    def __init__(self, args: Any=None):
+        super().__init__()
+        self.args = args
+
+        self.model = T5ForConditionalGeneration.from_pretrained(args.model_name_or_path)
+        self.tokenizer = T5Tokenizer.from_pretrained(args.tokenizer_name_or_path)
+
+    def forward(self, input_ids, attention_mask=None, labels=None):
+        return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+
+    def save(self, path: str):
+        torch.save(self.model.state_dict(), path)
+
+    def load(self, path: str):
+        self.model.load_state_dict(torch.load(path))
+
+
+def evaluate(model, dataloader, args):
     references = []
     predictions = []
-    running_loss = .0
 
+    model.eval()
+    for batch_idx, batch in tqdm(enumerate(dataloader), "Eval", colour="cyan", total=len(dataloader)):
+        empty_cache()
+
+        sources_text = batch["source_text"]
+        targets_text = batch[args.objective_column_name]
+
+        inputs = model.tokenizer(
+            sources_text, 
+            max_length=args.max_source_length,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt"
+        )
+        input_ids = inputs["input_ids"].to(args.device)
+        attention_mask = inputs["attention_mask"].to(args.device)
+        
+        outputs = model.generate(
+            input_ids=input_ids, attention_mask=attention_mask, do_sample=False, 
+            max_length=args.max_target_length
+        )
+        outputs_text = model.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
+        references.extend(targets_text)
+        predictions.extend(outputs_text)
+
+        if batch_idx == 0 and args.verbose:
+            log = "=" * 150
+            for i in range(len(sources_text)):
+                log += f"\nInput: {sources_text[i]}"
+                log += f"\nTarget: {targets_text[i]}"
+                log += f"\nOutput: {outputs_text[i]}"
+
+            print("\n" + log)
+            with open(args.log_file_path, "a", encoding="utf-8") as log_file:
+                log_file.write(log)
+
+    scores = get_evaluation_scores(
+        predictions, 
+        references,
+        args
+    )
+
+    return scores
+
+
+def train(model, optimizer, dataloader, args):
+    running_loss = .0
     model.train()
-    for batch in dataloader:
-        optimizer.zero_grad()
+
+    for batch_idx, batch in tqdm(enumerate(dataloader), "Training", colour="cyan", total=len(dataloader)):
+        empty_cache()
 
         sources_text = batch["source_text"]
         targets_text = batch[args.objective_column_name]
@@ -114,139 +192,106 @@ def train(model, optimizer, dataloader, args):
         
         outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
         loss = outputs.loss
+
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
         running_loss += loss.item()
 
-        outputs_text = model.tokenizer.batch_decode(
-            outputs.logits.argmax(dim=-1), 
-            skip_special_tokens=True
-        )
-
-        references.extend(targets_text)
-        predictions.extend(outputs_text)
-
     running_loss /= len(dataloader)
-    scores = get_evaluation_scores(predictions, references, args)
-
-    return {"loss": running_loss, **scores}
+    return {"loss": running_loss}
 
 
-def test(model, dataloader, args):
-    references = []
-    predictions = []
-    running_loss = .0
+def one_epoch_trainer(
+    model,  
+    optimizer, 
+    train_dataloader, 
+    test_dataloader,
+    args
+):
+    train_loss_infos = train(model, optimizer, train_dataloader, args)
+    train_epoch_infos = evaluate(model, train_dataloader, args)
+    test_epoch_infos = evaluate(model, test_dataloader, args)
 
-    model.eval()
-    with torch.no_grad():
-        for batch in dataloader:
-            sources_text = batch["source_text"]
-            targets_text = batch[args.objective_column_name]
+    if args.target_rating_flag:
+        f1_score = test_epoch_infos["f1"]
+        if f1_score > args.best_f1_score:
+            model.save(args.save_model_path)
+            args.best_f1_score = f1_score
+    else:
+        meteor_score = test_epoch_infos["METEOR"]["meteor"]
+        if meteor_score > args.best_meteor_score:
+            model.save(args.save_model_path)
+            args.best_meteor_score = meteor_score
 
-            inputs = model.tokenizer(
-                sources_text, 
-                max_length=args.max_source_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt"
-            )
-            input_ids = inputs["input_ids"].to(args.device)
-            attention_mask = inputs["attention_mask"].to(args.device)
-
-            targets = model.tokenizer(
-                targets_text, 
-                max_length=args.max_target_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt"
-            )
-            labels = targets["input_ids"].to(args.device)
-            labels[labels == model.tokenizer.pad_token_id] = -100
-            
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-            loss = outputs.loss
-            running_loss += loss.item()
-
-            outputs_text = model.tokenizer.batch_decode(
-                outputs.logits.argmax(dim=-1), 
-                skip_special_tokens=True
-            )
-
-            references.extend(targets_text)
-            predictions.extend(outputs_text)
-
-    running_loss /= len(dataloader)
-    scores = get_evaluation_scores(predictions, references, args)
-
-    return {"loss": running_loss, **scores}
+    return train_loss_infos, train_epoch_infos, test_epoch_infos
 
 
-def trainer(model, train_dataloader, test_dataloader, args):
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+def update_infos(train_infos, test_infos, train_loss_infos, train_epoch_infos, test_epoch_infos):
+    train_infos["loss"].append(train_loss_infos["loss"])
 
-    train_infos = {}
-    test_infos = {}
+    for metric in train_epoch_infos:
+        if isinstance(train_epoch_infos[metric], dict):
+            if metric not in train_infos:
+                train_infos[metric] = {}
+                test_infos[metric] = {}
 
-    progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
-    for epoch in progress_bar:
-        train_epoch_infos = train(model, optimizer, train_dataloader, args)
-        test_epoch_infos = test(model, test_dataloader, args)
+            for k in train_epoch_infos[metric]:
+                if k not in train_infos[metric]:
+                    train_infos[metric][k] = []
+                    test_infos[metric][k] = []
+                train_infos[metric][k].append(train_epoch_infos[metric][k])
+                test_infos[metric][k].append(test_epoch_infos[metric][k])
 
-        for metric in train_epoch_infos:
+        else:
             if metric not in train_infos:
                 train_infos[metric] = []
                 test_infos[metric] = []
             train_infos[metric].append(train_epoch_infos[metric])
             test_infos[metric].append(test_epoch_infos[metric])
 
-        progress_bar.set_description(
-            f"[{epoch} / {args.n_epochs}] " +
-            f"Loss: train={train_epoch_infos['loss']:.4f} test={test_epoch_infos['loss']:.4f}"
-        )
-
-        results = {"train": train_infos, "test": test_infos}
-        with open(args.res_file_path, "w") as res_file:
-            json.dump(results, res_file)
-
-        if epoch % args.save_every == 0:
-            model.save(args.save_model_path)
-
     return train_infos, test_infos
 
 
-def get_task_name(args) -> str:
-    if args.target_review_flag and args.target_rating_flag:
-        task_name = "Review and rating prediction"
-    elif args.target_review_flag:
-        task_name = "Review prediction"
-    elif args.target_rating_flag:
-        task_name = "Rating prediction"
-    else:
-        task_name = "No task"
-    return task_name
+def trainer(
+    model, 
+    optimizer,
+    train_dataloader, 
+    test_dataloader,
+    n_epochs,
+    args,
+):
+    train_infos={"loss": [],}
+    test_infos={}
 
+    progress_bar = tqdm(range(1, 1 + n_epochs), "Training", colour="blue")
+    for epoch in progress_bar:
+        train_loss_infos, train_epoch_infos, test_epoch_infos = one_epoch_trainer(
+            model, 
+            optimizer,
+            train_dataloader, 
+            test_dataloader,
+            args
+        )
+        train_infos, test_infos = update_infos(
+            train_infos, test_infos,
+            train_loss_infos, train_epoch_infos, test_epoch_infos 
+        )
 
-def set_objective_column_name(args):
-    args.objective_column_name = ""
-    if args.target_review_flag and args.target_rating_flag:
-        args.objective_column_name = args.objective_column_name
-    elif args.target_review_flag:
-        args.objective_column_name = "review"
-    elif args.target_rating_flag:
-        args.objective_column_name = "rating"
-
-
-def collate_fn(batch):
-    collated_batch = {}
-    for key in batch[0]:
-        collated_batch[key] = [d[key] for d in batch]
-    return collated_batch
+        progress_bar.set_description(
+            f"Training [{epoch} / {n_epochs}] " +
+            f"Loss: train={train_loss_infos['loss']:.4f} "
+        )
+    
+    return train_infos, test_infos
 
 
 def main_train_test(args):
     train_df, test_df = get_train_test_data(args)
     train_df["rating"] = train_df["rating"].apply(str)
     test_df["rating"] = test_df["rating"].apply(str)
+
     train_dataset = TextDataset(train_df)
     train_dataloader = DataLoader(
         train_dataset, 
@@ -257,6 +302,7 @@ def main_train_test(args):
         test_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
     )
+
     set_objective_column_name(args)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -302,7 +348,7 @@ def main_train_test(args):
         print("\n" + log)
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
-
+            
     train_infos, test_infos = trainer(model, train_dataloader, test_dataloader, args)
     results = {"train": train_infos, "test": test_infos}
     with open(args.res_file_path, "w") as res_file:
@@ -317,6 +363,7 @@ def main_test(args):
         test_dataset, 
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
     )
+
     set_objective_column_name(args)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -360,7 +407,7 @@ def main_test(args):
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
 
-    test_results = test(model, test_dataloader, args)
+    test_results = evaluate(model, test_dataloader, args)
     results = {"train": {}, "test": test_results}
     with open(args.res_file_path, "w") as res_file:
         json.dump(results, res_file)

@@ -25,9 +25,9 @@ def task_trainer(
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     if args.task_type is TaskType.T2A:
-        args.best_f1_score = 0.0
+        args.best_t2a_f1_score = 0.0
     else:
-        args.best_meteor_score = 0.0
+        args.best_a2t_meteor_score = 0.0
 
     infos = {"test": {}, "training": {}}
     train_infos, test_infos = trainer(
@@ -36,8 +36,10 @@ def task_trainer(
         optimizer=optimizer,
         annotations_text_former=annotations_text_former,
         train_dataloader=train_dataloader,
+        train_evaluated_dataloader=train_dataloader,
         test_dataloader=test_dataloader,
         task_type=args.task_type,
+        n_epochs=args.n_epochs,
         args=args
     )
     infos["training"]["train"] = train_infos
@@ -120,6 +122,10 @@ def main(args):
 
     if args.save_model_path == "":
         args.save_model_path = os.path.join(exp_dir, "model.pth")
+    if args.task_type is TaskType.T2A:
+        args.save_t2a_model_path = args.save_model_path
+    else:
+        args.save_a2t_model_path = args.save_model_path
 
     if args.verbose:
         batch = next(iter(test_dataloader))
@@ -149,16 +155,11 @@ def main(args):
         with open(args.log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write(log)
 
-    infos, infos = cycle_trainer(
-        model,
+    infos = task_trainer(
         model,
         tokenizer,
         annotations_text_former,
         train_dataloader,
-        train_dataloader,
-        train_dataloader,
-        train_dataloader,
-        val_dataloader,
         val_dataloader,
         args
     )
