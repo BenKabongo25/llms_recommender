@@ -73,7 +73,7 @@ class T5ABSADataset(Dataset):
                 ann = tuple([preprocess_text(t.strip(), self.args) for t in ann]) 
                 formatted_annotations.append(ann)
             self.annotations[idx] = formatted_annotations
-            annotations_text = self.annotations_text_former.multiple_annotations_to_text(annotations)
+            annotations_text = self.annotations_text_former.multiple_annotations_to_text(formatted_annotations)
 
             if self.task_type is TaskType.T2A:
                 input_text = text
@@ -85,7 +85,7 @@ class T5ABSADataset(Dataset):
             input_text = self.prompter.get_prompt(
                 task_type=self.task_type,
                 text=input_text, 
-                annotations=annotations, 
+                annotations=formatted_annotations, 
                 polarities=self.annotations_text_former.absa_data.sentiment_polarities,
             )
             

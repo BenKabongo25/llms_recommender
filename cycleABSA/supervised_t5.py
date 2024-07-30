@@ -163,7 +163,7 @@ def main(args):
         args
     )
 
-    model = load_model(model, args.save_model_path)
+    load_model(model, args.save_model_path)
     model.to(args.device)
     test_infos = evaluate(
         model, tokenizer, annotations_text_former, test_dataloader, args.task_type, args

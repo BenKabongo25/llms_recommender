@@ -724,6 +724,8 @@ def main(args):
         batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
     )
 
+    args.annotations_raw_format = args.absa_tuple.value
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
 
@@ -798,7 +800,7 @@ def main(args):
         args
     )
 
-    t2a_model = load_model(t2a_model, args.save_t2a_model_path)
+    load_model(t2a_model, args.save_t2a_model_path)
     t2a_model.to(args.device)
     t2a_test_infos = evaluate(
         t2a_model, tokenizer, annotations_text_former, test_t2a_dataloader, TaskType.T2A, args
@@ -808,7 +810,7 @@ def main(args):
     t2a_infos_df.to_csv(args.res_t2a_file_path)
     verbose_results(t2a_infos_df, TaskType.T2A)
 
-    a2t_model = load_model(a2t_model, args.save_a2t_model_path)
+    load_model(a2t_model, args.save_a2t_model_path)
     a2t_model.to(args.device)
     a2t_test_infos = evaluate(
         a2t_model, tokenizer, annotations_text_former, test_a2t_dataloader, TaskType.A2T, args
