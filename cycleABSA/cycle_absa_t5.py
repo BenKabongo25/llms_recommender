@@ -478,7 +478,7 @@ def a2t_unlabeled_one_epoch_trainer(
     return a2t_train_infos, a2t_test_infos
 
 
-def verbose_results(res_data_df, task_type):
+def verbose_results(res_data_df, task_type, args):
     if args.verbose:
         log = "=" * 150
         log += f"\n{task_type.value}\n"
@@ -526,7 +526,7 @@ def cycle_trainer(
 
         t2a_infos_df = create_res_df_from_dict(t2a_infos, TaskType.T2A)
         t2a_infos_df.to_csv(args.res_t2a_file_path)
-        verbose_results(t2a_infos_df, TaskType.T2A)
+        verbose_results(t2a_infos_df, TaskType.T2A, args)
 
         a2t_train_labeled_infos, a2t_test_labeled_infos = labeled_trainer(
             model=a2t_model,
@@ -543,7 +543,7 @@ def cycle_trainer(
 
         a2t_infos_df = create_res_df_from_dict(a2t_infos, TaskType.A2T)
         a2t_infos_df.to_csv(args.res_a2t_file_path)
-        verbose_results(a2t_infos_df, TaskType.A2T)
+        verbose_results(a2t_infos_df, TaskType.A2T, args)
 
     t2a_progress_bar = tqdm(
         total=args.n_unlabeled_epochs, 
@@ -591,7 +591,7 @@ def cycle_trainer(
         
         t2a_infos_df = create_res_df_from_dict(t2a_infos, TaskType.T2A)
         t2a_infos_df.to_csv(args.res_t2a_file_path)
-        verbose_results(t2a_infos_df, TaskType.T2A)
+        verbose_results(t2a_infos_df, TaskType.T2A, args)
 
         a2t_train_unlabeled_infos, a2t_test_unlabeled_infos = a2t_unlabeled_one_epoch_trainer(
             a2t_model,
@@ -620,7 +620,7 @@ def cycle_trainer(
         
         a2t_infos_df = create_res_df_from_dict(a2t_infos, TaskType.A2T)
         a2t_infos_df.to_csv(args.res_a2t_file_path)
-        verbose_results(a2t_infos_df, TaskType.A2T)
+        verbose_results(a2t_infos_df, TaskType.A2T, args)
 
     return t2a_infos, a2t_infos
 
@@ -808,7 +808,7 @@ def main(args):
     t2a_infos["test"] = t2a_test_infos
     t2a_infos_df = create_res_df_from_dict(t2a_infos, TaskType.T2A)
     t2a_infos_df.to_csv(args.res_t2a_file_path)
-    verbose_results(t2a_infos_df, TaskType.T2A)
+    verbose_results(t2a_infos_df, TaskType.T2A, args)
 
     load_model(a2t_model, args.save_a2t_model_path)
     a2t_model.to(args.device)
@@ -818,7 +818,7 @@ def main(args):
     a2t_infos["test"] = a2t_test_infos
     a2t_infos_df = create_res_df_from_dict(a2t_infos, TaskType.A2T)
     a2t_infos_df.to_csv(args.res_a2t_file_path)
-    verbose_results(a2t_infos_df, TaskType.A2T)
+    verbose_results(a2t_infos_df, TaskType.A2T, args)
 
 
 if __name__ == "__main__":

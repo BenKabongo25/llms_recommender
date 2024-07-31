@@ -47,7 +47,7 @@ def task_trainer(
 
     infos_df = create_res_df_from_dict(infos, args.task_type)
     infos_df.to_csv(args.res_file_path)
-    verbose_results(infos_df, TaskType.T2A)
+    verbose_results(infos_df, args.task_type, args)
 
     return infos
 
@@ -172,7 +172,7 @@ def main(args):
     infos["test"] = test_infos
     infos_df = create_res_df_from_dict(infos, args.task_type)
     infos_df.to_csv(args.res_file_path)
-    verbose_results(infos_df, args.task_type)
+    verbose_results(infos_df, args.task_type, args)
 
 
 if __name__ == "__main__":

@@ -131,7 +131,7 @@ def evaluate(model, dataloader, args):
         input_ids = inputs["input_ids"].to(args.device)
         attention_mask = inputs["attention_mask"].to(args.device)
         
-        outputs = model.generate(
+        outputs = model.model.generate(
             input_ids=input_ids, attention_mask=attention_mask, do_sample=False, 
             max_length=args.max_target_length
         )
@@ -256,16 +256,19 @@ def update_infos(train_infos, test_infos, train_loss_infos, train_epoch_infos, t
 
 def trainer(
     model, 
-    optimizer,
     train_dataloader, 
     test_dataloader,
-    n_epochs,
     args,
 ):
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
     train_infos={"loss": [],}
     test_infos={}
 
-    progress_bar = tqdm(range(1, 1 + n_epochs), "Training", colour="blue")
+    args.best_f1_score = 0.0
+    args.best_meteor_score = 0.0
+
+    progress_bar = tqdm(range(1, 1 + args.n_epochs), "Training", colour="blue")
     for epoch in progress_bar:
         train_loss_infos, train_epoch_infos, test_epoch_infos = one_epoch_trainer(
             model, 
@@ -280,7 +283,7 @@ def trainer(
         )
 
         progress_bar.set_description(
-            f"Training [{epoch} / {n_epochs}] " +
+            f"Training [{epoch} / {args.n_epochs}] " +
             f"Loss: train={train_loss_infos['loss']:.4f} "
         )
     
@@ -440,8 +443,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_source_length", type=int, default=1024)
     parser.add_argument("--max_target_length", type=int, default=128)
 
-    parser.add_argument("--base_dir", type=str, default="")
-    parser.add_argument("--dataset_name", type=str, default="")
+    parser.add_argument("--base_dir", type=str, default=os.path.join("datasets", "processed"))
+    parser.add_argument("--dataset_name", type=str, default="Beauty")
     parser.add_argument("--dataset_dir", type=str, default="")
     parser.add_argument("--dataset_path", type=str, default="")
     parser.add_argument("--train_dataset_path", type=str, default="")
