@@ -20,25 +20,54 @@ from tqdm import tqdm
 from typing import *
 
 from data import get_train_test_data, get_test_data
-from utils import ratings_evaluation, set_seed
+from utils import collate_fn, empty_cache, ratings_evaluation, set_seed
 
 warnings.filterwarnings(action="ignore")
 
 
-class TextRatingDataset(Dataset):
-
-    def __init__(self, data_df: pd.DataFrame, args: Any=None):
+class T5RatingDataset(Dataset):
+        
+    def __init__(self, tokenizer: T5Tokenizer, data_df: pd.DataFrame, args: Any):
+        super().__init__()
+        self.tokenizer = tokenizer
         self.data_df = data_df
         self.args = args
+        
+        self.input_ids = []
+        self.attention_masks = []
+
+        self._build()
 
     def __len__(self) -> int:
         return len(self.data_df)
-    
-    def __getitem__(self, index: int) -> Tuple[str, int]:
-        row = self.data_df.iloc[index]
-        source = row["source"]
-        rating = row["rating"]
-        return source, rating
+
+    def _build(self):
+        for i in tqdm(range(len(self.data_df)), "Prepare dataset", colour="green"):
+            item = self.data_df.iloc[i]
+            source_text = str(item["source"])
+
+            input = self.tokenizer(
+                source_text, 
+                max_length=self.args.max_source_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt"
+            )
+            input_ids = input["input_ids"].squeeze()
+            attention_mask = input["attention_mask"].squeeze()
+
+            self.input_ids.append(input_ids)
+            self.attention_masks.append(attention_mask)
+
+    def __getitem__(self, index: int) -> Any:
+        item = self.data_df.iloc[index]
+
+        return {
+            "source_text": item["source"],
+            "rating": item["rating"],
+            "input_ids": self.input_ids[index],
+            "attention_mask": self.attention_masks[index]
+        }
 
 
 class T5MLPRecommender(nn.Module):
@@ -62,10 +91,6 @@ class T5MLPRecommender(nn.Module):
         else:
             self.model.classification_head = nn.Linear(self.model.config.d_model, n_classes)
 
-        #for param in self.parameters():
-        #    param.requires_grad = False
-        #self.model.classification_head.requires_grad = True
-
     def forward(self, input_ids, attention_mask):
         return self.model(input_ids=input_ids, attention_mask=attention_mask).logits
     
@@ -87,26 +112,21 @@ def train(model, optimizer, dataloader, loss_fn, args):
     predictions = []
     running_loss = .0
 
-    model.train()
-    for source, R in dataloader:
+    model.train()    
+    for batch_idx, batch in tqdm(enumerate(dataloader), "Train", colour="cyan", total=len(dataloader)):
+        empty_cache()
         optimizer.zero_grad()
 
-        inputs = model.tokenizer(
-            source, 
-            max_length=args.max_source_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt"
-        )
-        input_ids = inputs["input_ids"].to(args.device)
-        attention_mask = inputs["attention_mask"].to(args.device)
+        input_ids = batch["input_ids"].to(args.device)
+        attention_mask = batch["attention_mask"].to(args.device)
+        R = batch["rating"]
         
         if args.do_classification:
             R = torch.LongTensor(R).to(args.device)
         else:
             R = torch.tensor(R.clone().detach(), dtype=torch.float32).to(args.device)
         
-        R_hat = model(input_ids, attention_mask).squeeze()
+        R_hat = model(input_ids=input_ids, attention_mask=attention_mask).squeeze()
         loss = loss_fn(R_hat, R)
         loss.backward()
         optimizer.step()
@@ -114,9 +134,15 @@ def train(model, optimizer, dataloader, loss_fn, args):
 
         if args.do_classification:
             R_hat = R_hat.argmax(dim=1)
+        if isinstance(R_hat, float):
+            R_hat = torch.tensor([R_hat]).to(args.device)
 
-        references.extend(R.cpu().detach().tolist())
-        predictions.extend(R_hat.cpu().detach().tolist())
+        try:
+            predictions.extend(R_hat.cpu().detach().tolist())
+            references.extend(R.cpu().detach().tolist())
+        except:
+            print(R_hat)
+            print(R)
 
     running_loss /= len(dataloader)
     ratings_scores = ratings_evaluation(predictions, references, args)
@@ -143,31 +169,33 @@ def test(model, dataloader, loss_fn, args):
 
     model.eval()
     with torch.no_grad():
-        for source, R in dataloader:        
-            inputs = model.tokenizer(
-                source, 
-                max_length=args.max_source_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors="pt"
-            )
-            input_ids = inputs["input_ids"].to(args.device)
-            attention_mask = inputs["attention_mask"].to(args.device)
+        for batch_idx, batch in tqdm(enumerate(dataloader), "Test", colour="cyan", total=len(dataloader)):
+            empty_cache()
+
+            input_ids = batch["input_ids"].to(args.device)
+            attention_mask = batch["attention_mask"].to(args.device)
+            R = batch["rating"]
             
             if args.do_classification:
                 R = torch.LongTensor(R).to(args.device)
             else:
                 R = torch.tensor(R.clone().detach(), dtype=torch.float32).to(args.device)
             
-            R_hat = model(input_ids, attention_mask).squeeze()
+            R_hat = model(input_ids=input_ids, attention_mask=attention_mask).squeeze()
             loss = loss_fn(R_hat, R)
             running_loss += loss.item()
 
             if args.do_classification:
                 R_hat = R_hat.argmax(dim=1)
+            if isinstance(R_hat, float):
+                R_hat = torch.tensor([R_hat]).to(args.device)
                 
-            references.extend(R.cpu().detach().tolist())
-            predictions.extend(R_hat.cpu().detach().tolist())
+            try:
+                predictions.extend(R_hat.cpu().detach().tolist())
+                references.extend(R.cpu().detach().tolist())
+            except:
+                print(R_hat)
+                print(R)
 
     running_loss /= len(dataloader)
     ratings_scores = ratings_evaluation(predictions, references, args)
@@ -226,19 +254,11 @@ def trainer(model, train_dataloader, test_dataloader, args):
 def main_train_test(args):
     train_df, test_df = get_train_test_data(args)
 
+    n_classes = 1
     if args.do_classification:
         rating_fn = lambda x: int(x - args.min_rating)
         train_df["rating"] = train_df["rating"].apply(rating_fn)
         test_df["rating"] = test_df["rating"].apply(rating_fn)
-
-    train_dataset = TextRatingDataset(train_df, args)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-
-    test_dataset = TextRatingDataset(test_df, args)
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
-    n_classes = 1
-    if args.do_classification:
         n_classes = int(args.max_rating - args.min_rating + 1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -248,6 +268,14 @@ def main_train_test(args):
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
+
+    train_dataset = T5RatingDataset(model.tokenizer, train_df, args)
+    train_dataloader = DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True
+    )
+
+    test_dataset = T5RatingDataset(model.tokenizer, test_df, args)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     mlp_flag = "mlp" if args.mlp_classifier_flag else "linear"
     if args.exp_name == "":
@@ -299,15 +327,10 @@ def main_train_test(args):
 def main_test(args):
     test_df = get_test_data(args)
 
-    if args.do_classification:
-        rating_fn = lambda x: int(x - args.min_rating)
-        test_df["rating"] = test_df["rating"].apply(rating_fn)
-
-    test_dataset = TextRatingDataset(test_df, args)
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
-
     n_classes = 1
     if args.do_classification:
+        rating_fn = lambda x: int(x - args.min_rating)
+        test_df["rating"] = test_df["rating"].apply(rating_fn)        
         n_classes = int(args.max_rating - args.min_rating + 1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -317,6 +340,9 @@ def main_test(args):
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
+
+    test_dataset = T5RatingDataset(model.tokenizer, test_df, args)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     if args.exp_name == "":
         args.exp_name = (

@@ -19,3 +19,12 @@ from common.utils.functions import set_seed
 def empty_cache():
     with torch.no_grad(): 
         torch.cuda.empty_cache()
+
+
+def collate_fn(batch):
+    collated_batch = {}
+    for key in batch[0]:
+        collated_batch[key] = [d[key] for d in batch]
+        if isinstance(collated_batch[key][0], torch.Tensor):
+            collated_batch[key] = torch.cat(collated_batch[key], 0)
+    return collated_batch

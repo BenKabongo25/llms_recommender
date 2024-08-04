@@ -7,18 +7,19 @@
 import argparse
 import json
 import os
-import sys
+import pandas as pd
 import torch
 import torch.nn as nn
 import warnings
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 from tqdm import tqdm
 from typing import *
 
-from data import TextDataset, get_train_test_data, get_test_data
+from data import get_train_test_data, get_test_data
 from prompters import TargetFormer
 from utils import (
+    collate_fn,
     empty_cache,
     evaluate_fn,
     ratings_evaluation,
@@ -44,18 +45,11 @@ def get_task_name(args) -> str:
 def set_objective_column_name(args):
     args.objective_column_name = ""
     if args.target_review_flag and args.target_rating_flag:
-        args.objective_column_name = args.objective_column_name
+        args.objective_column_name = "target"
     elif args.target_review_flag:
         args.objective_column_name = "review"
     elif args.target_rating_flag:
         args.objective_column_name = "rating"
-
-
-def collate_fn(batch):
-    collated_batch = {}
-    for key in batch[0]:
-        collated_batch[key] = [d[key] for d in batch]
-    return collated_batch
 
 
 def get_evaluation_scores(predictions: list, references: list, args: Any) -> dict:
@@ -91,6 +85,67 @@ def get_evaluation_scores(predictions: list, references: list, args: Any) -> dic
     return scores
 
 
+class T5Dataset(Dataset):
+        
+    def __init__(self, tokenizer: T5Tokenizer, text_df: pd.DataFrame, args: Any):
+        super().__init__()
+        self.tokenizer = tokenizer
+        self.text_df = text_df
+        self.args = args
+        
+        self.input_ids = []
+        self.attention_masks = []
+        self.labels = []
+
+        self._build()
+
+    def __len__(self) -> int:
+        return len(self.text_df)
+
+    def _build(self):
+        for i in tqdm(range(len(self.text_df)), "Prepare dataset", colour="green"):
+            item = self.text_df.iloc[i]
+            source_text = str(item["source"])
+            target_text = str(item["target"])
+
+            input = self.tokenizer(
+                source_text, 
+                max_length=self.args.max_source_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt"
+            )
+            input_ids = input["input_ids"]
+            attention_mask = input["attention_mask"]
+
+            target = self.tokenizer(
+                target_text, 
+                max_length=self.args.max_target_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt"
+            )
+            labels = target["input_ids"]
+            labels[labels == self.tokenizer.pad_token_id] = -100
+
+            self.input_ids.append(input_ids)
+            self.attention_masks.append(attention_mask)
+            self.labels.append(labels)
+
+    def __getitem__(self, index: int) -> Any:
+        item = self.text_df.iloc[index]
+
+        return {
+            "source_text": item["source"],
+            "target_text": str(item["target"]),
+            "review": item["review"],
+            "rating": item["rating"],
+            "input_ids": self.input_ids[index],
+            "attention_mask": self.attention_masks[index],
+            "labels": self.labels[index]
+        }
+
+
 class T5Recommender(nn.Module):
 
     def __init__(self, args: Any=None):
@@ -121,15 +176,8 @@ def evaluate(model, dataloader, args):
         sources_text = batch["source_text"]
         targets_text = batch[args.objective_column_name]
 
-        inputs = model.tokenizer(
-            sources_text, 
-            max_length=args.max_source_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt"
-        )
-        input_ids = inputs["input_ids"].to(args.device)
-        attention_mask = inputs["attention_mask"].to(args.device)
+        input_ids = batch["input_ids"].to(args.device)
+        attention_mask = batch["attention_mask"].to(args.device)
         
         outputs = model.model.generate(
             input_ids=input_ids, attention_mask=attention_mask, do_sample=False, 
@@ -167,28 +215,9 @@ def train(model, optimizer, dataloader, args):
     for batch_idx, batch in tqdm(enumerate(dataloader), "Training", colour="cyan", total=len(dataloader)):
         empty_cache()
 
-        sources_text = batch["source_text"]
-        targets_text = batch[args.objective_column_name]
-
-        inputs = model.tokenizer(
-            sources_text, 
-            max_length=args.max_source_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt"
-        )
-        input_ids = inputs["input_ids"].to(args.device)
-        attention_mask = inputs["attention_mask"].to(args.device)
-
-        targets = model.tokenizer(
-            targets_text, 
-            max_length=args.max_target_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt"
-        )
-        labels = targets["input_ids"].to(args.device)
-        labels[labels == model.tokenizer.pad_token_id] = -100
+        input_ids = batch["input_ids"].to(args.device)
+        attention_mask = batch["attention_mask"].to(args.device)
+        labels = batch["labels"].to(args.device)
         
         outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
         loss = outputs.loss
@@ -254,12 +283,7 @@ def update_infos(train_infos, test_infos, train_loss_infos, train_epoch_infos, t
     return train_infos, test_infos
 
 
-def trainer(
-    model, 
-    train_dataloader, 
-    test_dataloader,
-    args,
-):
+def trainer(model, train_dataloader, test_dataloader, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     train_infos={"loss": [],}
@@ -294,18 +318,6 @@ def main_train_test(args):
     train_df, test_df = get_train_test_data(args)
     train_df["rating"] = train_df["rating"].apply(str)
     test_df["rating"] = test_df["rating"].apply(str)
-
-    train_dataset = TextDataset(train_df)
-    train_dataloader = DataLoader(
-        train_dataset, 
-        batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn
-    )
-    test_dataset = TextDataset(test_df)
-    test_dataloader = DataLoader(
-        test_dataset, 
-        batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
-    )
-
     set_objective_column_name(args)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -315,6 +327,17 @@ def main_train_test(args):
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
+
+    train_dataset = T5Dataset(model.tokenizer, train_df, args)
+    train_dataloader = DataLoader(
+        train_dataset, 
+        batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn
+    )
+    test_dataset = T5Dataset(model.tokenizer, test_df, args)
+    test_dataloader = DataLoader(
+        test_dataset, 
+        batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
+    )
 
     if args.exp_name == "":
         args.exp_name = (
@@ -361,14 +384,8 @@ def main_train_test(args):
 def main_test(args):
     test_df = get_test_data(args)
     test_df["rating"] = test_df["rating"].apply(str)
-    test_dataset = TextDataset(test_df)
-    test_dataloader = DataLoader(
-        test_dataset, 
-        batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
-    )
-
     set_objective_column_name(args)
-
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
 
@@ -376,6 +393,12 @@ def main_test(args):
     model.to(args.device)
     if args.save_model_path != "":
         model.load(args.save_model_path)
+
+    test_dataset = T5Dataset(model.tokenizer, test_df, args)
+    test_dataloader = DataLoader(
+        test_dataset, 
+        batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn
+    )
 
     if args.exp_name == "":
         args.exp_name = (
@@ -438,8 +461,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model_name_or_path", type=str, default="google/flan-t5-base")
-    parser.add_argument("--tokenizer_name_or_path", type=str, default="google/flan-t5-base")
+    parser.add_argument("--model_name_or_path", type=str, default="google/flan-t5-small")
+    parser.add_argument("--tokenizer_name_or_path", type=str, default="google/flan-t5-small")
     parser.add_argument("--max_source_length", type=int, default=1024)
     parser.add_argument("--max_target_length", type=int, default=128)
 
