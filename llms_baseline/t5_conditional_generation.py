@@ -22,6 +22,7 @@ from utils import (
     collate_fn,
     empty_cache,
     evaluate_fn,
+    preprocess_text,
     ratings_evaluation,
     reviews_evaluation,
     set_seed
@@ -138,8 +139,6 @@ class T5Dataset(Dataset):
         return {
             "source_text": item["source"],
             "target_text": str(item["target"]),
-            "review": item["review"],
-            "rating": item["rating"],
             "input_ids": self.input_ids[index],
             "attention_mask": self.attention_masks[index],
             "labels": self.labels[index]
@@ -174,7 +173,7 @@ def evaluate(model, dataloader, args):
         empty_cache()
 
         sources_text = batch["source_text"]
-        targets_text = batch[args.objective_column_name]
+        targets_text = batch["target_text"]
 
         input_ids = batch["input_ids"].to(args.device)
         attention_mask = batch["attention_mask"].to(args.device)
@@ -257,29 +256,26 @@ def one_epoch_trainer(
     return train_loss_infos, train_epoch_infos, test_epoch_infos
 
 
+def extend_epoch_infos(infos, epoch_infos):
+    for metric in epoch_infos:
+        if isinstance(epoch_infos[metric], dict):
+            if metric not in infos:
+                infos[metric] = {}
+            for k in epoch_infos[metric]:
+                if k not in infos[metric]:
+                    infos[metric][k] = []
+                infos[metric][k].append(epoch_infos[metric][k])
+        else:
+            if metric not in infos:
+                infos[metric] = []
+            infos[metric].append(epoch_infos[metric])
+    return infos
+
+
 def update_infos(train_infos, test_infos, train_loss_infos, train_epoch_infos, test_epoch_infos):
     train_infos["loss"].append(train_loss_infos["loss"])
-
-    for metric in train_epoch_infos:
-        if isinstance(train_epoch_infos[metric], dict):
-            if metric not in train_infos:
-                train_infos[metric] = {}
-                test_infos[metric] = {}
-
-            for k in train_epoch_infos[metric]:
-                if k not in train_infos[metric]:
-                    train_infos[metric][k] = []
-                    test_infos[metric][k] = []
-                train_infos[metric][k].append(train_epoch_infos[metric][k])
-                test_infos[metric][k].append(test_epoch_infos[metric][k])
-
-        else:
-            if metric not in train_infos:
-                train_infos[metric] = []
-                test_infos[metric] = []
-            train_infos[metric].append(train_epoch_infos[metric])
-            test_infos[metric].append(test_epoch_infos[metric])
-
+    train_infos = extend_epoch_infos(train_infos, train_epoch_infos)
+    test_infos = extend_epoch_infos(test_infos, test_epoch_infos)
     return train_infos, test_infos
 
 
@@ -314,10 +310,7 @@ def trainer(model, train_dataloader, test_dataloader, args):
     return train_infos, test_infos
 
 
-def main_train_test(args):
-    train_df, test_df = get_train_test_data(args)
-    train_df["rating"] = train_df["rating"].apply(str)
-    test_df["rating"] = test_df["rating"].apply(str)
+def main_train_test(train_df, test_df, args):
     set_objective_column_name(args)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -360,7 +353,7 @@ def main_train_test(args):
         task_name = get_task_name(args)
         example = next(iter(train_dataloader))
         log_example = f"Input: {example['source_text'][0]}"
-        log_example += f"\n\nTarget: {example[args.objective_column_name][0]}"
+        log_example += f"\n\nTarget: {example['target_text'][0]}"
         log = (
             f"Model: {args.model_name_or_path}\n" +
             f"Tokenizer: {args.tokenizer_name_or_path}\n" +
@@ -381,9 +374,7 @@ def main_train_test(args):
         json.dump(results, res_file)
 
 
-def main_test(args):
-    test_df = get_test_data(args)
-    test_df["rating"] = test_df["rating"].apply(str)
+def main_test(test_df, args):
     set_objective_column_name(args)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -453,9 +444,14 @@ def main(args):
         args.dataset_dir = os.path.join(args.base_dir, args.dataset_name)
 
     if args.train_flag:
-        main_train_test(args)
+        train_df, test_df = get_train_test_data(args)
+        train_df["rating"] = train_df["rating"].apply(str)
+        test_df["rating"] = test_df["rating"].apply(str)
+        main_train_test(train_df, test_df, args)
     else:
-        main_test(args)
+        test_df = get_test_data(args)
+        test_df["rating"] = test_df["rating"].apply(str)
+        main_test(test_df, args)
 
 
 if __name__ == "__main__":
