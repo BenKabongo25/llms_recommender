@@ -1,7 +1,7 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# CycleABSA: Enums
+# Absa: Enums
 
 import enum
 

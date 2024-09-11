@@ -1,7 +1,7 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# CycleABSA: T5 Fine-tuning
+# Cycle Absa: T5 Fine-tuning
 
 import argparse
 import json

@@ -1,7 +1,7 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# CycleABSA: Annotations to text and text to annotations
+# Absa: Annotations to text and text to annotations
 
 from typing import *
 

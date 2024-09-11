@@ -1,12 +1,11 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# CycleABSA: Utils
+# Absa: Utils
 
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - June 2024
 
-# Basline approach
 # Utils
 
 

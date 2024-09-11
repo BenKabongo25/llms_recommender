@@ -170,7 +170,7 @@ class SourcePrompter:
             prompt += "You have to predict the review for each user-item pair. "
 
         elif self.args.target_rating_flag:
-            prompt += "You have to predict the review for each user-item pair. "
+            prompt += "You have to predict the rating for each user-item pair. "
 
         else:
             prompt += ""
@@ -314,11 +314,11 @@ class SourcePrompter:
             sample_prompt += task_prompt + ": "
             if target_flag:
                 if self.args.target_review_flag and self.args.target_rating_flag:
-                    sample_prompt += sample["review"] + "|" + sample["rating"]
+                    sample_prompt += sample["review"] + "|" + str(sample["rating"])
                 elif self.args.target_review_flag:
                     sample_prompt += sample["review"]
                 elif self.args.target_rating_flag:
-                    sample_prompt += sample["rating"]
+                    sample_prompt += str(sample["rating"])
                 else:
                     sample_prompt += ""
 

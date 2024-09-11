@@ -119,6 +119,15 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
     if args.train_text_data_path != "" and args.test_text_data_path != "":
         train_df = pd.read_csv(args.train_text_data_path)
         test_df = pd.read_csv(args.test_text_data_path)
+        if args.max_data_samples > 0:
+            train_df = train_df.sample(
+                n=min(args.max_data_samples, len(train_df)), 
+                random_state=args.random_state
+            )
+            test_df = test_df.sample(
+                n=min(args.max_data_samples, len(test_df)), 
+                random_state=args.random_state
+            )
     
     else:
         if args.dataset_path == "" and (args.train_dataset_path == "" or args.test_dataset_path == ""):
@@ -134,6 +143,16 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
             data_df = pd.read_csv(args.dataset_path)
             train_data_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
             test_data_df = data_df.drop(train_data_df.index)
+
+        if args.max_data_samples > 0:
+            train_data_df = train_data_df.sample(
+                n=min(args.max_data_samples, len(train_data_df)), 
+                random_state=args.random_state
+            )
+            test_data_df = test_data_df.sample(
+                n=min(args.max_data_samples, len(test_data_df)), 
+                random_state=args.random_state
+            )
 
         metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
         users_df = None
@@ -173,7 +192,11 @@ def get_train_test_data(args: Any) -> Tuple[pd.DataFrame, pd.DataFrame]:
 def get_test_data(args: Any) -> pd.DataFrame:
     if args.test_text_data_path != "":
         test_df = pd.read_csv(args.test_text_data_path)
-        return test_df
+        if args.max_data_samples > 0:
+            test_df = test_df.sample(
+                n=min(args.max_data_samples, len(test_df)), 
+                random_state=args.random_state
+            )
 
     else:    
         if args.test_dataset_path == "":
@@ -181,6 +204,11 @@ def get_test_data(args: Any) -> pd.DataFrame:
             args.test_dataset_path = os.path.join(seen_dir, "test.csv")
 
         test_data_df = pd.read_csv(args.test_dataset_path)
+        if args.max_data_samples > 0:
+            test_data_df = test_data_df.sample(
+                n=min(args.max_data_samples, len(test_data_df)), 
+                random_state=args.random_state
+            )
             
         metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
         users_df = None
@@ -259,6 +287,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--max_data_samples", type=int, default=1_000_000)
     parser.add_argument("--save_every", type=int, default=10)
     parser.add_argument("--save_model_path", type=str, default="")
 

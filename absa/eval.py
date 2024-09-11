@@ -1,7 +1,7 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# CycleABSA: Eval
+# Absa: Eval
 
 import evaluate
 import numpy as np

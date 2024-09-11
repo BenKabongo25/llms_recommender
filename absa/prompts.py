@@ -1,7 +1,7 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# CycleABSA: Prompts
+# Absa: Prompts
 
 from typing import Any, Tuple
 

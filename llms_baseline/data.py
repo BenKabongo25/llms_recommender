@@ -343,7 +343,7 @@ class DatasetCreator:
             "sample": self._format_sample(sample, *ui_examples)
         }
         source_text = self.source_prompter(sample_)
-        target_text = self.target_former(sample_)
+        target_text = self.target_former(sample_["sample"])
 
         text_dict = {}
         for k in ["user_id", "item_id", "review", "rating"]:

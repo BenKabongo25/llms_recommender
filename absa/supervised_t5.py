@@ -1,7 +1,7 @@
 # Ben Kabongo - MIA Paris-Saclay x Onepoint
 # NLP & RecSys - July 2024
 
-# CycleABSA: T5 Fine-tuning
+# Absa: T5 Fine-tuning
 
 import argparse
 import json
@@ -72,7 +72,7 @@ def main(args):
     train_df, val_df, test_df = get_train_val_test_df(args)
 
     train_dataset = T5ABSADataset(
-        tokenizer, annotations_text_former, prompter, train_df, args, task_type=TaskType.T2A,
+        tokenizer, annotations_text_former, prompter, train_df, args, task_type=args.task_type,
         split_name="Train"
     )
     train_dataloader = DataLoader(
@@ -81,7 +81,7 @@ def main(args):
     )
     
     val_dataset = T5ABSADataset(
-        tokenizer, annotations_text_former, prompter, val_df, args, task_type=TaskType.T2A,
+        tokenizer, annotations_text_former, prompter, val_df, args, task_type=args.task_type,
         split_name="Eval"
     )
     val_dataloader = DataLoader(
@@ -90,7 +90,7 @@ def main(args):
     )
 
     test_dataset = T5ABSADataset(
-        tokenizer, annotations_text_former, prompter, test_df, args, task_type=TaskType.T2A,
+        tokenizer, annotations_text_former, prompter, test_df, args, task_type=args.task_type,
         split_name="Test"
     )
     test_dataloader = DataLoader(

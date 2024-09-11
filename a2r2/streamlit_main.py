@@ -6,14 +6,52 @@
 import os
 import pandas as pd
 import streamlit as st
+import sys
 import torch
+import warnings
 
 from models import A2R2v1
-from data import get_vocabularies
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+warnings.filterwarnings(action="ignore")
+from common.utils.vocabulary import Vocabulary, create_vocab_from_df
+
+
+def get_vocabularies(args):
+    metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
+
+    if "users_vocab.json" in os.listdir(metadata_dir):
+        args.users_vocab_path = os.path.join(metadata_dir, "users_vocab.json")
+    if args.users_vocab_path != "":
+        users_vocab = Vocabulary()
+        users_vocab.load(args.users_vocab_path)
+    else:
+        if args.users_path == "":
+            args.users_path = os.path.join(metadata_dir, "users.csv")
+        users_df = pd.read_csv(args.users_path)
+        users_df[args.user_id_column] = users_df[args.user_id_column].apply(str)
+        users_vocab = create_vocab_from_df(users_df, args.user_id_column)
+        users_vocab.save(os.path.join(metadata_dir, "users_vocab.json"))
+
+    if "items_vocab.json" in os.listdir(metadata_dir):
+        args.items_vocab_path = os.path.join(metadata_dir, "items_vocab.json")
+    if args.items_vocab_path != "":
+        items_vocab = Vocabulary()
+        items_vocab.load(args.items_vocab_path)
+    else:
+        if args.items_path == "":
+            args.items_path = os.path.join(metadata_dir, "items.csv")
+        items_df = pd.read_csv(args.items_path)
+        items_df[args.item_id_column] = items_df[args.item_id_column].apply(str)
+        items_vocab = create_vocab_from_df(items_df, args.item_id_column)
+        items_vocab.save(os.path.join(metadata_dir, "items_vocab.json"))
+
+    return users_vocab, items_vocab
 
 
 def draw_stars(rating):
-    return rating, ":star:" * int(rating)
+    return rating, ":star:" * int(rating) + ":star:" * (rating % 1 > 0.5)
 
 def write_ids(vocab):
     return list(map(lambda x: f"{x[0]}: {x[1]}", vocab._ids2elements.items()))
@@ -35,7 +73,7 @@ DATASETS = [
     "RateBeer"
 ]
 
-args.base_dir = "Datasets\\processed"
+args.base_dir = os.path.join("datasets", "processed")
 
 st.subheader(":red[Attention] and :blue[Aspect]-based Rating and Review Prediction")
 st.divider()
@@ -70,9 +108,7 @@ if dataset == "TripAdvisor":
 
 elif dataset == "BeerAdvocate":
     args.aspects = ["appearance", "aroma", "taste", "palate"]
-    args.model_path = os.path.join(
-        args.dataset_dir, "exps", "a2r2v1_mlp_regression_separate_1720355804", "model.pth"
-    )
+    args.model_path = os.path.join(args.dataset_dir, "exps", "a2r2v1", "model.pth")
 
 elif dataset == "RateBeer":
     args.aspects = ["appearance", "aroma", "taste", "palate"]
