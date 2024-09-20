@@ -110,8 +110,8 @@ def main(args):
         train_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
         test_df = data_df.drop(train_df.index)
     
-    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]].dropna()
+    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]].dropna()
     reader = Reader(rating_scale=(args.min_rating, args.max_rating))
     trainset = Dataset.load_from_df(train_df, reader).build_full_trainset()
     testset = Dataset.load_from_df(test_df, reader).build_full_trainset().build_testset()
@@ -157,13 +157,18 @@ if __name__ == "__main__":
     parser.add_argument("--algo", type=str, default="svd++") # svd, svd++, nmf
     parser.add_argument("--n_factors", type=int, default=32)
     parser.add_argument("--n_epochs", type=int, default=30)
-    parser.add_argument("--biased", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(biased=True)
     parser.add_argument("--lr_all", type=float, default=0.005)
     parser.add_argument("--reg_all", type=float, default=0.02)
     parser.add_argument("--random_state", type=int, default=42)
-    parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
-    parser.set_defaults(verbose=True)
+
+    if sys.version_info[1] >= 9:
+        parser.add_argument("--biased", action=argparse.BooleanOptionalAction)
+        parser.set_defaults(biased=True)
+        parser.add_argument("--verbose", action=argparse.BooleanOptionalAction)
+        parser.set_defaults(verbose=True)
+    else:
+        parser.add_argument("--biased", action="store_true")
+        parser.add_argument("--verbose", action="store_true")
 
     parser.add_argument("--base_dir", type=str, default="Datasets\\processed")
     parser.add_argument("--dataset_name", type=str, default="TripAdvisor")

@@ -236,8 +236,6 @@ def trainer(model, train_dataloader, test_dataloader, args):
 def get_vocabularies(args):
     metadata_dir = os.path.join(args.dataset_dir, "samples", "metadata")
 
-    if "users_vocab.json" in os.listdir(metadata_dir):
-        args.users_vocab_path = os.path.join(metadata_dir, "users_vocab.json")
     if args.users_vocab_path != "":
         users_vocab = Vocabulary()
         users_vocab.load(args.users_vocab_path)
@@ -249,8 +247,6 @@ def get_vocabularies(args):
         users_vocab = create_vocab_from_df(users_df, args.user_id_column)
         users_vocab.save(os.path.join(args.dataset_dir, "users_vocab.json"))
 
-    if "items_vocab.json" in os.listdir(metadata_dir):
-        args.items_vocab_path = os.path.join(metadata_dir, "items_vocab.json")
     if args.items_vocab_path != "":
         items_vocab = Vocabulary()
         items_vocab.load(args.items_vocab_path)
@@ -285,8 +281,8 @@ def main_train_test(args):
     test_df[args.user_id_column] = test_df[args.user_id_column].apply(str)
     test_df[args.item_id_column] = test_df[args.item_id_column].apply(str)
     
-    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]].dropna()
+    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]].dropna()
 
     users_vocab, items_vocab = get_vocabularies(args)
 
@@ -376,7 +372,7 @@ def main_test(args):
     test_df = pd.read_csv(args.test_dataset_path)
     test_df[args.user_id_column] = test_df[args.user_id_column].apply(str)
     test_df[args.item_id_column] = test_df[args.item_id_column].apply(str)
-    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]].dropna()
 
     users_vocab, items_vocab = get_vocabularies(args)
 
@@ -482,7 +478,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--train_size", type=float, default=0.8)
-    parser.add_argument("--lr", type=float, default=0.005)
+    parser.add_argument("--lr", type=float, default=0.001)
     
     parser.add_argument("--train_flag", action=argparse.BooleanOptionalAction)
     parser.set_defaults(train_flag=True)

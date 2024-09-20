@@ -110,8 +110,8 @@ def main(args):
         train_df = data_df.sample(frac=args.train_size, random_state=args.random_state)
         test_df = data_df.drop(train_df.index)
     
-    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]]
-    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]]
+    train_df = train_df[[args.user_id_column, args.item_id_column, args.rating_column]].dropna()
+    test_df = test_df[[args.user_id_column, args.item_id_column, args.rating_column]].dropna()
 
     model = get_method(args)
     if args.exp_name == "":

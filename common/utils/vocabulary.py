@@ -15,12 +15,13 @@ class Vocabulary:
         self._elements2ids = {}
         self._ids2elements = {}
         self.n_elements = 0
+        self.default_add = True
 
     def add_element(self, element: Union[int, float, str]):
         if element not in self._elements2ids:
-            self.n_elements += 1
             self._elements2ids[element] = self.n_elements
             self._ids2elements[self.n_elements] = element
+            self.n_elements += 1
 
     def add_elements(self, elements: List[Union[int, float, str]]):
         for element in tqdm(elements, "Vocabulary creation", colour="green"):
@@ -33,13 +34,18 @@ class Vocabulary:
         return self._ids2elements[id]
     
     def element2id(self, element: Union[int, float, str]) -> int:
+        if element not in self._elements2ids:
+            if self.default_add:
+                self.add_element(element)
+            else:
+                return None
         return self._elements2ids[element]
     
     def ids2elements(self, ids: List[int]) -> List[Union[int, float, str]]:
         return [self._ids2elements[id] for id in ids]
     
     def elements2ids(self, elements: List[Union[int, float, str]]) -> List[int]:
-        return [self._elements2ids[element] for element in elements]
+        return [self.element2id(element) for element in elements]
 
     def save(self, path: str):
         with open(path, "w") as f:
